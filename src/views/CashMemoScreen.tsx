@@ -1,0 +1,1119 @@
+import React, { useState } from 'react';
+import {
+  FileText,
+  Printer,
+  Share2,
+  Copy,
+  Plus,
+  Eye,
+  Check,
+  X,
+  Phone,
+  MapPin,
+  Calendar,
+  Clock,
+  ArrowLeft,
+  ChevronDown,
+  Receipt,
+  Smartphone,
+  Hash,
+} from 'lucide-react';
+import { useShop } from '../context/ShopContext';
+import { CashMemo, CashMemoItem } from '../types';
+import { formatTaka, getTodayStr, getCurrentTimeStr, generateMemoNumber } from '../utils/formatters';
+import { takaInBengaliWords } from '../utils/bengaliWords';
+
+export const CashMemoScreen: React.FC = () => {
+  const {
+    cashMemos,
+    products,
+    profile,
+    todayDateStr,
+    saveCashMemo,
+    showMessage,
+  } = useShop();
+
+  // Mode: 'FORM' | 'VIEW' | 'HISTORY'
+  const [activeView, setActiveView] = useState<'FORM' | 'VIEW' | 'HISTORY'>('FORM');
+  const [selectedMemo, setSelectedMemo] = useState<CashMemo | null>(cashMemos[0] || null);
+  const [memoStyle, setMemoStyle] = useState<'ORANGE_AMBER' | 'CYAN_BLUE' | 'THERMAL_RECEIPT'>('ORANGE_AMBER');
+
+  // Form states
+  const [memoNumber, setMemoNumber] = useState(generateMemoNumber());
+  const [memoDate, setMemoDate] = useState(todayDateStr);
+  const [memoTime, setMemoTime] = useState(getCurrentTimeStr());
+  const [customerName, setCustomerName] = useState('');
+  const [customerMobile, setCustomerMobile] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('বুল্লা বাজার');
+  const [memoNotes, setMemoNotes] = useState('বিক্রিত মাল ফেরত নেওয়া হয় না।');
+  const [autoRecordSale, setAutoRecordSale] = useState(true);
+
+  // Line items
+  const [items, setItems] = useState<CashMemoItem[]>([
+    {
+      description: 'Samsung 25W Fast Charger Type-C',
+      quantity: 1,
+      rate: 550,
+      amount: 550,
+    },
+  ]);
+
+  const [discountAmount, setDiscountAmount] = useState('0');
+  const [paidAmount, setPaidAmount] = useState('');
+
+  // Calculations
+  const subtotal = items.reduce((acc, it) => acc + (it.amount || 0), 0);
+  const totalQuantity = items.reduce((acc, it) => acc + (it.quantity || 0), 0);
+  const discount = parseFloat(discountAmount) || 0;
+  const grandTotal = Math.max(0, subtotal - discount);
+  const paid = paidAmount === '' ? grandTotal : parseFloat(paidAmount) || 0;
+  const due = Math.max(0, grandTotal - paid);
+  const paymentStatus: 'PAID' | 'DUE' | 'PARTIAL' = due === 0 ? 'PAID' : paid === 0 ? 'DUE' : 'PARTIAL';
+
+  const resetForm = () => {
+    setMemoNumber(generateMemoNumber());
+    setMemoDate(todayDateStr);
+    setMemoTime(getCurrentTimeStr());
+    setCustomerName('');
+    setCustomerMobile('');
+    setCustomerAddress('বুল্লা বাজার');
+    setMemoNotes('বিক্রিত মাল ফেরত নেওয়া হয় না।');
+    setItems([
+      {
+        description: '',
+        quantity: 1,
+        rate: 0,
+        amount: 0,
+      },
+    ]);
+    setDiscountAmount('0');
+    setPaidAmount('');
+  };
+
+  const handleAddItem = () => {
+    setItems([
+      ...items,
+      {
+        description: '',
+        quantity: 1,
+        rate: 0,
+        amount: 0,
+      },
+    ]);
+  };
+
+  const handleItemChange = (index: number, field: keyof CashMemoItem, value: any) => {
+    const updated = [...items];
+    const item = { ...updated[index], [field]: value };
+
+    if (field === 'quantity' || field === 'rate') {
+      const q = field === 'quantity' ? parseInt(value, 10) || 0 : item.quantity;
+      const r = field === 'rate' ? parseFloat(value) || 0 : item.rate;
+      item.amount = q * r;
+    }
+
+    updated[index] = item;
+    setItems(updated);
+  };
+
+  const handleSelectProductForItem = (index: number, prodId: string) => {
+    const p = products.find((prod) => prod.id === prodId);
+    if (!p) return;
+
+    const updated = [...items];
+    updated[index] = {
+      productId: p.id,
+      description: p.name,
+      quantity: 1,
+      rate: p.sellingPrice,
+      amount: p.sellingPrice,
+    };
+    setItems(updated);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (items.length <= 1) return;
+    setItems(items.filter((_, i) => i !== index));
+  };
+
+  const handleSaveAndPreview = (e: React.FormEvent) => {
+    e.preventDefault();
+    const validItems = items.filter((it) => it.description.trim() && it.amount > 0);
+    if (validItems.length === 0) return;
+
+    const newMemoData: Omit<CashMemo, 'id' | 'userId'> = {
+      memoNumber,
+      date: memoDate || todayDateStr,
+      time: memoTime || getCurrentTimeStr(),
+      customerName: customerName.trim() || 'নগদ ক্রেতা',
+      customerMobile: customerMobile.trim(),
+      customerAddress: customerAddress.trim() || 'বুল্লা বাজার',
+      items: validItems,
+      subtotal,
+      discount,
+      grandTotal,
+      paidAmount: paid,
+      dueAmount: due,
+      paymentStatus,
+      notes: memoNotes.trim(),
+      isDemo: false,
+    };
+
+    const savedId = saveCashMemo(newMemoData, autoRecordSale);
+
+    const fullMemo: CashMemo = {
+      ...newMemoData,
+      id: savedId || `memo-${Date.now()}`,
+      userId: profile.userId,
+    };
+
+    setSelectedMemo(fullMemo);
+    setActiveView('VIEW');
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const getPlainTextReceipt = (memo: CashMemo) => {
+    let text = `🧾 *ক্যাশ মেমো / CASH MEMO* 🧾\n`;
+    text += `🏢 *${profile.shopName || 'ইয়াছিন টেলিকম'}*\n`;
+    text += `📱 স্মার্টফোন ও ডিজিটাল সেবা কেন্দ্র\n`;
+    text += `👤 প্রোঃ ${profile.ownerName || 'মোহাম্মদ ইয়াছিন'}\n`;
+    text += `📞 ${profile.phone || '01766906974'}\n`;
+    text += `📍 ${profile.address || 'বুল্লা বাজার, লাখাই, হবিগঞ্জ'}\n`;
+    text += `--------------------------------\n`;
+    text += `মেমো নং: ${memo.memoNumber}\n`;
+    text += `তারিখ: ${memo.date} (${memo.time})\n`;
+    text += `গ্রাহক: ${memo.customerName || 'নগদ ক্রেতা'}\n`;
+    if (memo.customerMobile) text += `মোবাইল: ${memo.customerMobile}\n`;
+    if (memo.customerAddress) text += `ঠিকানা: ${memo.customerAddress}\n`;
+    text += `--------------------------------\n`;
+    text += `*পণ্যের বিবরণ:*\n`;
+    memo.items.forEach((it, i) => {
+      text += `${i + 1}. ${it.description} - ৳${Math.round(it.rate)} × ${it.quantity} = ৳${Math.round(it.amount)}\n`;
+    });
+    text += `--------------------------------\n`;
+    const memoTotalQty = memo.items.reduce((acc, it) => acc + (it.quantity || 0), 0);
+    text += `📦 *মোট আইটেম:* ${memoTotalQty} টি\n`;
+    text += `💰 *উপ-মোট:* ৳${Math.round(memo.subtotal)}\n`;
+    if (memo.discount > 0) text += `🏷️ *ছাড়:* ৳${Math.round(memo.discount)}\n`;
+    text += `💵 *সর্বমোট:* ৳${Math.round(memo.grandTotal)}\n`;
+    text += `✅ *জমা:* ৳${Math.round(memo.paidAmount)}\n`;
+    if (memo.dueAmount > 0) {
+      text += `⚠️ *বাকী:* ৳${Math.round(memo.dueAmount)}\n`;
+    } else {
+      text += `✨ *সম্পূর্ণ পরিশোধিত*\n`;
+    }
+    text += `🗣️ *কথায়:* ${takaInBengaliWords(memo.grandTotal)}\n`;
+    text += `--------------------------------\n`;
+    text += `📌 ${memo.notes || 'বিক্রিত মাল ফেরত নেওয়া হয় না।'}\n`;
+    text += `🙏 ধন্যবাদ, আবার আসবেন!\n`;
+    return text;
+  };
+
+  const handleShareWhatsApp = (memo: CashMemo) => {
+    const rawPhone = memo.customerMobile.trim().replace(/[+\-\s]/g, '');
+    let formattedPhone = rawPhone;
+    if (rawPhone.startsWith('01')) {
+      formattedPhone = `88${rawPhone}`;
+    } else if (rawPhone.startsWith('1')) {
+      formattedPhone = `880${rawPhone}`;
+    }
+
+    const text = getPlainTextReceipt(memo);
+    const encoded = encodeURIComponent(text);
+    const url = formattedPhone
+      ? `https://wa.me/${formattedPhone}?text=${encoded}`
+      : `https://api.whatsapp.com/send?text=${encoded}`;
+
+    window.open(url, '_blank');
+  };
+
+  const handleCopyReceipt = (memo: CashMemo) => {
+    navigator.clipboard.writeText(getPlainTextReceipt(memo));
+    showMessage('মেমোর টেক্সট ক্লিপবোর্ডে কপি করা হয়েছে!');
+  };
+
+  return (
+    <div className="space-y-4 pb-24">
+      {/* View Switcher Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 no-print">
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setActiveView('FORM')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              activeView === 'FORM'
+                ? 'bg-orange-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            নতুন মেমো তৈরি
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (cashMemos.length > 0 && !selectedMemo) {
+                setSelectedMemo(cashMemos[0]);
+              }
+              setActiveView('VIEW');
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              activeView === 'VIEW'
+                ? 'bg-orange-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            মেমো ভিউ ও প্রিন্ট
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveView('HISTORY')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              activeView === 'HISTORY'
+                ? 'bg-orange-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            মেমো খাতা ({cashMemos.length})
+          </button>
+        </div>
+
+        {activeView === 'VIEW' && selectedMemo && (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">লেআউট স্টাইল:</span>
+            <select
+              value={memoStyle}
+              onChange={(e) => setMemoStyle(e.target.value as any)}
+              className="text-xs font-bold bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-slate-700 shadow-2xs focus:ring-2 focus:ring-orange-500 focus:outline-none"
+            >
+              <option value="ORANGE_AMBER">অরেঞ্জ-অ্যাম্বার এক্সিকিউটিভ (A4)</option>
+              <option value="CYAN_BLUE">সায়ান-ব্লু মোবাইল স্টাইল (A4)</option>
+              <option value="THERMAL_RECEIPT">থার্মাল পিওএস রসিদ (58mm/80mm POS)</option>
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* VIEW 1: Cash Memo Creation Form */}
+      {activeView === 'FORM' && (
+        <form onSubmit={handleSaveAndPreview} className="space-y-4 no-print">
+          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-orange-600" />
+                <span>অফিসিয়াল ক্যাশ মেমো জেনারেটর</span>
+              </h2>
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
+                #{memoNumber}
+              </span>
+            </div>
+
+            {/* Visiting Card Banner Header (No separate loose text shop name or address) */}
+            <div className="rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-slate-900">
+              <img
+                src="/assets/aistudio/Modern_Bengali_Telecom_Store_Banner_23b2899d.png"
+                alt="ইয়াছিন টেলিকম - অফিসিয়াল ভিজিটিং কার্ড"
+                className="w-full h-auto object-cover block rounded-2xl"
+                draggable={false}
+              />
+            </div>
+
+            {/* Customer Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Customer Name (ক্রেতার নাম) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="নগদ ক্রেতা / নাম লিখুন"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Mobile Number (মোবাইল নম্বর - ঐচ্ছিক)
+                </label>
+                <input
+                  type="text"
+                  value={customerMobile}
+                  onChange={(e) => setCustomerMobile(e.target.value)}
+                  placeholder="017xxxxxxxx"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">ঠিকানা</label>
+                <input
+                  type="text"
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  placeholder="বুল্লা বাজার, লাখাই"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Date and Time */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-600 mb-1">তারিখ</label>
+                <input
+                  type="text"
+                  value={memoDate}
+                  onChange={(e) => setMemoDate(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-600 mb-1">সময়</label>
+                <input
+                  type="text"
+                  value={memoTime}
+                  onChange={(e) => setMemoTime(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50"
+                />
+              </div>
+            </div>
+
+            {/* Multiple Product Line Items */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-800 text-xs sm:text-sm">
+                  পণ্যের তালিকা (Product Items)
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddItem}
+                  className="flex items-center gap-1 text-xs font-bold text-orange-600 hover:text-orange-700 px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 transition"
+                >
+                  <Plus className="w-3.5 h-3.5" /> আইটেম যোগ
+                </button>
+              </div>
+
+              <div className="space-y-2.5">
+                {items.map((item, index) => (
+                  <div
+                    key={index}
+                    className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-black text-slate-400">#{index + 1}</span>
+
+                      {/* Quick product selector from inventory */}
+                      <select
+                        onChange={(e) => handleSelectProductForItem(index, e.target.value)}
+                        defaultValue=""
+                        className="text-[11px] bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 max-w-[200px] truncate"
+                      >
+                        <option value="" disabled>
+                          স্টক পণ্য থেকে বাছাই করুন...
+                        </option>
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} (৳{p.sellingPrice})
+                          </option>
+                        ))}
+                      </select>
+
+                      {items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(index)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    <input
+                      type="text"
+                      required
+                      value={item.description}
+                      onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                      placeholder="পণ্যের নাম ও বিবরণ"
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 font-medium"
+                    />
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">পরিমাণ (Qty)</span>
+                        <input
+                          type="number"
+                          min="1"
+                          required
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                          className="w-full px-2 py-1 text-center font-bold border border-slate-200 rounded-lg bg-white"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">একক মূল্য (Rate ৳)</span>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          required
+                          value={item.rate}
+                          onChange={(e) => handleItemChange(index, 'rate', e.target.value)}
+                          className="w-full px-2 py-1 text-center font-semibold border border-slate-200 rounded-lg bg-white"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">মোট টাকা (৳)</span>
+                        <div className="w-full px-2 py-1 rounded-lg bg-slate-200/60 font-black text-center text-slate-900">
+                          {formatTaka(item.amount)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Calculations & Bengali Words */}
+            <div className="p-3.5 bg-orange-50/50 rounded-xl border border-orange-100 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600 font-semibold">মোট পণ্য পরিমাণ (Total Quantity):</span>
+                <span className="font-extrabold text-slate-900">{totalQuantity} টি</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">উপ-মোট (Subtotal):</span>
+                <span className="font-bold text-slate-900">{formatTaka(subtotal)}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">ছাড় / Discount (৳):</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(e.target.value)}
+                  className="w-24 px-2 py-1 text-right font-bold border border-orange-200 rounded-lg bg-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-between font-black text-sm pt-1 border-t border-orange-200 text-slate-900">
+                <span>সর্বমোট (Grand Total):</span>
+                <span className="text-orange-700 text-base">{formatTaka(grandTotal)}</span>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="font-semibold text-slate-700">নগদ জমা / Advance (৳):</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(e.target.value)}
+                  placeholder={grandTotal.toString()}
+                  className="w-28 px-2 py-1 text-right font-black border border-emerald-300 rounded-lg bg-white text-emerald-600"
+                />
+              </div>
+
+              {due > 0 && (
+                <div className="flex items-center justify-between text-red-600 font-bold">
+                  <span>বাকী (Due):</span>
+                  <span>{formatTaka(due)}</span>
+                </div>
+              )}
+
+              {/* Taka in Bengali Words preview */}
+              <div className="mt-2 pt-2 border-t border-orange-200 text-slate-700 font-medium">
+                <span className="font-bold text-orange-900">কথায়: </span>
+                <span className="italic">{takaInBengaliWords(grandTotal)}</span>
+              </div>
+            </div>
+
+            {/* Auto record sale checkbox */}
+            <label className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer text-xs">
+              <input
+                type="checkbox"
+                checked={autoRecordSale}
+                onChange={(e) => setAutoRecordSale(e.target.checked)}
+                className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+              />
+              <span className="font-bold text-slate-800">
+                স্বয়ংক্রিয়ভাবে বিক্রয় খাতায় যোগ করুন এবং ইনভেন্টরি স্টক আপডেট করুন (একবারই আপডেট হবে)
+              </span>
+            </label>
+
+            {/* Submit & Preview Button */}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 border border-slate-200 rounded-xl font-semibold text-slate-600 hover:bg-slate-50 text-xs"
+              >
+                রিসেট
+              </button>
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold shadow-md text-xs sm:text-sm transition"
+              >
+                <Eye className="w-4 h-4" />
+                <span>সংরক্ষণ ও মেমো দেখুন</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* VIEW 2: Cash Memo Visual Preview & Print */}
+      {activeView === 'VIEW' && selectedMemo && (
+        <div className="space-y-4">
+          {/* Action buttons (hidden on print) */}
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs no-print">
+            <button
+              type="button"
+              onClick={() => setActiveView('FORM')}
+              className="flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-200"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>নতুন এন্ট্রি</span>
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleCopyReceipt(selectedMemo)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
+                title="টেক্সট কপি করুন"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>কপি</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleShareWhatsApp(selectedMemo)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow transition"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>WhatsApp শেয়ার</span>
+              </button>
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="flex items-center gap-1 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>প্রিন্ট / PDF</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Printable Cash Memo Document */}
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden max-w-2xl mx-auto print:shadow-none print:border-none print:max-w-none print:w-full">
+            {memoStyle === 'ORANGE_AMBER' ? (
+              /* ORANGE-AMBER EXECUTIVE DESIGN (A4) */
+              <div className="p-6 sm:p-8 relative bg-white min-h-[750px] flex flex-col justify-between text-slate-900">
+                {/* Official Visiting Card Header (No separate loose text shop name or address) */}
+                <div>
+                  <div className="rounded-xl overflow-hidden border border-slate-200 shadow-xs mb-3">
+                    <img
+                      src="/assets/aistudio/Modern_Bengali_Telecom_Store_Banner_23b2899d.png"
+                      alt="ইয়াছিন টেলিকম - ক্যাশ মেমো ব্যানার"
+                      className="w-full h-auto object-cover block rounded-xl"
+                      draggable={false}
+                    />
+                  </div>
+
+                  {/* Memo info & Customer details */}
+                  <div className="mt-4 pt-3 border-t border-slate-200 grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">No:</span>
+                        <span className="font-black text-slate-900">{selectedMemo.memoNumber}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="bg-slate-900 text-white px-2 py-0.5 rounded font-bold text-[10px]">
+                          Name:
+                        </span>
+                        <span className="font-bold text-slate-800 border-b border-slate-300 flex-1 pb-0.5">
+                          {selectedMemo.customerName || 'নগদ ক্রেতা'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="bg-slate-900 text-white px-2 py-0.5 rounded font-bold text-[10px]">
+                          Address:
+                        </span>
+                        <span className="text-slate-700 border-b border-slate-300 flex-1 pb-0.5 truncate">
+                          {selectedMemo.customerAddress || 'বুল্লা বাজার'}
+                          {selectedMemo.customerMobile ? ` | 📞 ${selectedMemo.customerMobile}` : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end justify-start">
+                      <div className="flex items-center gap-1">
+                        <span className="bg-slate-900 text-white px-2 py-0.5 rounded font-bold text-[10px]">
+                          Date:
+                        </span>
+                        <div className="flex border border-slate-900 rounded font-bold text-[11px] overflow-hidden">
+                          {selectedMemo.date.split('-').map((part, i) => (
+                            <span key={i} className="px-2 py-0.5 border-r last:border-r-0 border-slate-300 bg-slate-50">
+                              {part}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Items Table */}
+                  <div className="mt-5 border border-slate-300 rounded-lg overflow-hidden">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-gradient-to-r from-orange-600 via-orange-700 to-red-800 text-white font-bold">
+                          <th className="py-2 px-3 w-12 text-center border-r border-orange-700">No:</th>
+                          <th className="py-2 px-3 border-r border-orange-700">Description (পণ্যের বিবরণ)</th>
+                          <th className="py-2 px-3 w-20 text-center border-r border-orange-700">Quantity</th>
+                          <th className="py-2 px-3 w-24 text-right border-r border-orange-700">Rate</th>
+                          <th className="py-2 px-3 w-28 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {selectedMemo.items.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/50">
+                            <td className="py-2 px-3 text-center text-slate-500 border-r border-slate-200 font-medium">
+                              {idx + 1}
+                            </td>
+                            <td className="py-2 px-3 font-bold text-slate-800 border-r border-slate-200">
+                              {item.description}
+                            </td>
+                            <td className="py-2 px-3 text-center bg-orange-50/40 border-r border-slate-200 font-semibold">
+                              {item.quantity}
+                            </td>
+                            <td className="py-2 px-3 text-right border-r border-slate-200 font-medium">
+                              {formatTaka(item.rate)}
+                            </td>
+                            <td className="py-2 px-3 text-right bg-orange-50/40 font-black text-orange-700">
+                              {formatTaka(item.amount)}
+                            </td>
+                          </tr>
+                        ))}
+
+                        {/* Minimum empty rows for authentic memo look */}
+                        {Array.from({ length: Math.max(0, 4 - selectedMemo.items.length) }).map((_, i) => (
+                          <tr key={`empty-${i}`} className="h-7">
+                            <td className="border-r border-slate-200"></td>
+                            <td className="border-r border-slate-200"></td>
+                            <td className="border-r border-slate-200 bg-orange-50/20"></td>
+                            <td className="border-r border-slate-200"></td>
+                            <td className="bg-orange-50/20"></td>
+                          </tr>
+                        ))}
+
+                        {/* Total Quantity Row */}
+                        <tr className="border-t-2 border-slate-400 bg-slate-50/70">
+                          <td colSpan={2} className="py-1.5 px-3 font-bold text-slate-700 text-right border-r border-slate-200">
+                            মোট আইটেম সংখ্যা (Total Quantity):
+                          </td>
+                          <td className="py-1.5 px-3 text-center font-black text-slate-900 border-r border-slate-200 bg-orange-50/60">
+                            {selectedMemo.items.reduce((acc, it) => acc + (it.quantity || 0), 0)} টি
+                          </td>
+                          <td className="py-1.5 px-3 text-right font-bold text-orange-700 bg-orange-50/80 border-r border-slate-200">
+                            Total
+                          </td>
+                          <td className="py-1.5 px-3 text-right font-black text-slate-900 bg-orange-50/80">
+                            {formatTaka(selectedMemo.subtotal)}
+                          </td>
+                        </tr>
+                        {selectedMemo.discount > 0 && (
+                          <tr>
+                            <td colSpan={3} className="border-r border-slate-200"></td>
+                            <td className="py-1.5 px-3 text-right font-bold text-slate-600 bg-slate-50 border-r border-slate-200">
+                              Discount
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-black text-slate-800 bg-slate-50">
+                              -{formatTaka(selectedMemo.discount)}
+                            </td>
+                          </tr>
+                        )}
+                        <tr>
+                          <td colSpan={3} className="border-r border-slate-200"></td>
+                          <td className="py-1.5 px-3 text-right font-bold text-orange-700 bg-orange-50/80 border-r border-slate-200">
+                            Advance
+                          </td>
+                          <td className="py-1.5 px-3 text-right font-black text-emerald-700 bg-orange-50/80">
+                            {formatTaka(selectedMemo.paidAmount)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td colSpan={3} className="border-r border-slate-200"></td>
+                          <td className="py-1.5 px-3 text-right font-bold text-orange-700 bg-orange-50/80 border-r border-slate-200">
+                            Due
+                          </td>
+                          <td className="py-1.5 px-3 text-right font-black text-red-600 bg-orange-50/80">
+                            {formatTaka(selectedMemo.dueAmount)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Taka In Word */}
+                  <div className="mt-4 text-xs font-semibold text-slate-800">
+                    <span>Taka (In word): </span>
+                    <span className="font-bold underline decoration-slate-300 underline-offset-4">
+                      {takaInBengaliWords(selectedMemo.grandTotal)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Signatures & Footer Banner */}
+                <div className="mt-12 pt-8">
+                  <div className="flex items-center justify-between text-xs px-6">
+                    <div className="text-center">
+                      <div className="w-36 border-t border-slate-400 mb-1"></div>
+                      <p className="font-bold text-slate-800">Customer Signature</p>
+                      <p className="text-[10px] text-slate-400">(ক্রেতার স্বাক্ষর)</p>
+                    </div>
+
+                    <div className="text-center">
+                      <div className="w-36 border-t border-slate-400 mb-1"></div>
+                      <p className="font-bold text-slate-800">Authorized Signature</p>
+                      <p className="text-[10px] text-slate-400">(বিক্রেতার স্বাক্ষর)</p>
+                    </div>
+                  </div>
+
+                  {/* Bottom dynamic orange accent bar */}
+                  <div className="mt-6 -mx-8 -mb-8 h-3 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600"></div>
+                </div>
+              </div>
+            ) : memoStyle === 'THERMAL_RECEIPT' ? (
+              /* COMPACT THERMAL POS RECEIPT MODE (58mm / 80mm) */
+              <div className="p-6 max-w-sm mx-auto bg-white font-mono text-slate-900 border-x border-dashed border-slate-300">
+                <div className="text-center pb-3 border-b-2 border-dashed border-slate-800">
+                  <h2 className="text-lg font-black tracking-tight uppercase">{profile.shopName || 'YASIN TELECOM'}</h2>
+                  <p className="text-xs font-bold">Owner: {profile.ownerName || 'Mohammad Yasin'}</p>
+                  <p className="text-[11px]">{profile.address || 'Bulla Bazar, Lakhai, Habiganj'}</p>
+                  <p className="text-xs font-bold">Mobile: {profile.phone || '01766906974'}</p>
+                  <div className="mt-2 inline-block px-2.5 py-0.5 border border-slate-800 text-[10px] font-bold uppercase tracking-wider">
+                    CASH RECEIPT
+                  </div>
+                </div>
+
+                <div className="py-2.5 text-[11px] space-y-0.5 border-b border-dashed border-slate-300">
+                  <div className="flex justify-between">
+                    <span>Memo No:</span>
+                    <span className="font-bold">{selectedMemo.memoNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Date:</span>
+                    <span>{selectedMemo.date} {selectedMemo.time}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Customer:</span>
+                    <span className="font-bold truncate max-w-[150px]">{selectedMemo.customerName || 'Cash Customer'}</span>
+                  </div>
+                  {selectedMemo.customerMobile && (
+                    <div className="flex justify-between">
+                      <span>Phone:</span>
+                      <span>{selectedMemo.customerMobile}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="py-2.5 border-b-2 border-dashed border-slate-800">
+                  <table className="w-full text-[11px]">
+                    <thead>
+                      <tr className="border-b border-slate-400">
+                        <th className="text-left pb-1">Item</th>
+                        <th className="text-center pb-1">Qty</th>
+                        <th className="text-right pb-1">Rate</th>
+                        <th className="text-right pb-1">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-dotted divide-slate-200">
+                      {selectedMemo.items.map((it, idx) => (
+                        <tr key={idx} className="py-1">
+                          <td className="py-1 text-left font-semibold">{it.description}</td>
+                          <td className="py-1 text-center font-bold">{it.quantity}</td>
+                          <td className="py-1 text-right">{Math.round(it.rate)}</td>
+                          <td className="py-1 text-right font-bold">{Math.round(it.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="py-2.5 text-xs space-y-1 border-b border-dashed border-slate-300">
+                  <div className="flex justify-between font-bold">
+                    <span>Total Quantity:</span>
+                    <span>{selectedMemo.items.reduce((acc, it) => acc + (it.quantity || 0), 0)} pcs</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>{formatTaka(selectedMemo.subtotal)}</span>
+                  </div>
+                  {selectedMemo.discount > 0 && (
+                    <div className="flex justify-between text-red-600">
+                      <span>Discount:</span>
+                      <span>-{formatTaka(selectedMemo.discount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-300">
+                    <span>Grand Total:</span>
+                    <span>{formatTaka(selectedMemo.grandTotal)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-emerald-700">
+                    <span>Paid Amount:</span>
+                    <span>{formatTaka(selectedMemo.paidAmount)}</span>
+                  </div>
+                  {selectedMemo.dueAmount > 0 && (
+                    <div className="flex justify-between font-bold text-red-600">
+                      <span>Remaining Due:</span>
+                      <span>{formatTaka(selectedMemo.dueAmount)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="py-2 text-[10px] text-slate-700 italic border-b border-dashed border-slate-300">
+                  <span className="font-bold not-italic">In Words: </span>
+                  {takaInBengaliWords(selectedMemo.grandTotal)}
+                </div>
+
+                <div className="text-center pt-3 text-[11px] space-y-1">
+                  <p className="font-semibold">{selectedMemo.notes || 'বিক্রিত মাল ফেরত নেওয়া হয় না।'}</p>
+                  <p className="font-bold">Thank You! Please Visit Again.</p>
+                  <p className="text-[10px] text-slate-400">Software: Yasin Telecom Smart Shop Manager</p>
+                </div>
+              </div>
+            ) : (
+              /* CYAN-BLUE MOBILE STYLE DESIGN (A4) */
+              <div className="p-6 sm:p-8 relative bg-white min-h-[750px] flex flex-col justify-between text-slate-900">
+                <div>
+                  {/* Official Visiting Card Header */}
+                  <div className="rounded-xl overflow-hidden border border-slate-200 shadow-xs mb-3">
+                    <img
+                      src="/assets/aistudio/Modern_Bengali_Telecom_Store_Banner_23b2899d.png"
+                      alt="ইয়াছিন টেলিকম - ক্যাশ মেমো ব্যানার"
+                      className="w-full h-auto object-cover block rounded-xl"
+                      draggable={false}
+                    />
+                  </div>
+
+                  {/* Customer details banner */}
+                  <div className="grid grid-cols-2 gap-4 text-xs bg-sky-50/60 p-3.5 rounded-xl border border-sky-100 mt-8">
+                    <div>
+                      <p><span className="font-bold text-slate-600">মেমো নং:</span> <strong className="text-sky-800">{selectedMemo.memoNumber}</strong></p>
+                      <p className="mt-1"><span className="font-bold text-slate-600">নাম:</span> <strong>{selectedMemo.customerName || 'নগদ ক্রেতা'}</strong></p>
+                      {selectedMemo.customerMobile && (
+                        <p className="mt-1"><span className="font-bold text-slate-600">মোবাইল:</span> {selectedMemo.customerMobile}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p><span className="font-bold text-slate-600">তারিখ:</span> {selectedMemo.date}</p>
+                      <p className="mt-1"><span className="font-bold text-slate-600">ঠিকানা:</span> {selectedMemo.customerAddress || 'বুল্লা বাজার'}</p>
+                    </div>
+                  </div>
+
+                  {/* Items Table */}
+                  <div className="mt-4 border border-sky-200 rounded-xl overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-sky-600 text-white font-bold">
+                        <tr>
+                          <th className="py-2 px-3 text-center w-12">নং</th>
+                          <th className="py-2 px-3 text-left">বিবরণ</th>
+                          <th className="py-2 px-3 text-center w-20">পরিমাণ</th>
+                          <th className="py-2 px-3 text-right w-24">দর</th>
+                          <th className="py-2 px-3 text-right w-28">টাকা</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-sky-100">
+                        {selectedMemo.items.map((it, idx) => (
+                          <tr key={idx} className="hover:bg-sky-50/30">
+                            <td className="py-2 px-3 text-center text-slate-500">{idx + 1}</td>
+                            <td className="py-2 px-3 font-semibold text-slate-800">{it.description}</td>
+                            <td className="py-2 px-3 text-center font-bold text-slate-700">{it.quantity}</td>
+                            <td className="py-2 px-3 text-right">{formatTaka(it.rate)}</td>
+                            <td className="py-2 px-3 text-right font-black text-sky-700">{formatTaka(it.amount)}</td>
+                          </tr>
+                        ))}
+
+                        {/* Total Quantity */}
+                        <tr className="bg-sky-50 font-bold border-t border-sky-300">
+                          <td colSpan={2} className="py-1.5 px-3 text-right text-slate-700">
+                            মোট আইটেম সংখ্যা:
+                          </td>
+                          <td className="py-1.5 px-3 text-center text-sky-800 font-black">
+                            {selectedMemo.items.reduce((acc, it) => acc + (it.quantity || 0), 0)} টি
+                          </td>
+                          <td className="py-1.5 px-3 text-right text-slate-700">উপ-মোট:</td>
+                          <td className="py-1.5 px-3 text-right font-black text-slate-900">{formatTaka(selectedMemo.subtotal)}</td>
+                        </tr>
+
+                        {selectedMemo.discount > 0 && (
+                          <tr>
+                            <td colSpan={3}></td>
+                            <td className="py-1.5 px-3 text-right text-slate-600">ছাড়:</td>
+                            <td className="py-1.5 px-3 text-right font-bold text-slate-800">-{formatTaka(selectedMemo.discount)}</td>
+                          </tr>
+                        )}
+                        <tr>
+                          <td colSpan={3}></td>
+                          <td className="py-1.5 px-3 text-right font-bold text-sky-800">সর্বমোট:</td>
+                          <td className="py-1.5 px-3 text-right font-black text-sky-900 text-sm">{formatTaka(selectedMemo.grandTotal)}</td>
+                        </tr>
+                        <tr>
+                          <td colSpan={3}></td>
+                          <td className="py-1.5 px-3 text-right font-semibold text-emerald-700">জমা:</td>
+                          <td className="py-1.5 px-3 text-right font-black text-emerald-700">{formatTaka(selectedMemo.paidAmount)}</td>
+                        </tr>
+                        {selectedMemo.dueAmount > 0 && (
+                          <tr>
+                            <td colSpan={3}></td>
+                            <td className="py-1.5 px-3 text-right font-bold text-red-600">বাকি:</td>
+                            <td className="py-1.5 px-3 text-right font-black text-red-600">{formatTaka(selectedMemo.dueAmount)}</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mt-3 text-xs text-slate-700">
+                    <span>কথায়: </span>
+                    <strong className="underline decoration-slate-300">{takaInBengaliWords(selectedMemo.grandTotal)}</strong>
+                  </div>
+                </div>
+
+                <div className="mt-12 pt-6 border-t border-sky-100 flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-500">ক্রেতার স্বাক্ষর</span>
+                  <span className="font-bold text-sky-800">স্বত্বাধিকারীর স্বাক্ষর</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 3: Cash Memo History List */}
+      {activeView === 'HISTORY' && (
+        <div className="space-y-3 no-print">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-800">সংরক্ষিত মেমোর তালিকা</h2>
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                setActiveView('FORM');
+              }}
+              className="flex items-center gap-1 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl shadow transition"
+            >
+              <Plus className="w-4 h-4" /> নতুন মেমো
+            </button>
+          </div>
+
+          {cashMemos.length === 0 ? (
+            <div className="bg-white rounded-2xl p-8 text-center border border-slate-200 text-slate-500">
+              <FileText className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+              <p className="font-semibold text-sm">কোনো ক্যাশ মেমো সংরক্ষিত নেই!</p>
+            </div>
+          ) : (
+            cashMemos.map((memo) => {
+              const memoTotalQty = memo.items.reduce((acc, it) => acc + (it.quantity || 0), 0);
+              return (
+                <div
+                  key={memo.id}
+                  className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs hover:shadow-xs transition"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                          {memo.memoNumber}
+                        </span>
+                        <span className="text-xs text-slate-400">{memo.date} ({memo.time})</span>
+                      </div>
+                      <h4 className="font-bold text-slate-900 text-sm mt-1">
+                        {memo.customerName || 'নগদ ক্রেতা'}
+                        {memo.customerMobile && (
+                          <span className="text-xs font-normal text-slate-500 ml-1.5">
+                            📞 {memo.customerMobile}
+                          </span>
+                        )}
+                      </h4>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-base font-black text-slate-900 block">{formatTaka(memo.grandTotal)}</span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          memo.paymentStatus === 'PAID'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : memo.paymentStatus === 'DUE'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {memo.paymentStatus === 'PAID' ? 'পরিশোধিত' : memo.paymentStatus === 'DUE' ? 'বাকি' : 'আংশিক জমা'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 text-xs text-slate-500 flex items-center justify-between">
+                    <span className="truncate max-w-[70%]">
+                      পণ্য: {memo.items.map((it) => `${it.description} x${it.quantity}`).join(', ')}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
+                      মোট: {memoTotalQty} টি
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="text-slate-500">জমা: <strong className="text-emerald-700">{formatTaka(memo.paidAmount)}</strong></span>
+                      {memo.dueAmount > 0 && (
+                        <span className="text-red-600 font-bold">বাকি: {formatTaka(memo.dueAmount)}</span>
+                      )}
+                    </div>
+
+                    {/* Quick action buttons: View, WhatsApp, Copy (Deletions in Admin Panel) */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMemo(memo);
+                          setActiveView('VIEW');
+                        }}
+                        className="px-3 py-1 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold text-xs flex items-center gap-1 transition"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> মেমো দেখুন
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleShareWhatsApp(memo)}
+                        className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                        title="WhatsApp এ পাঠান"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyReceipt(memo)}
+                        className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition"
+                        title="টেক্সট কপি করুন"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
