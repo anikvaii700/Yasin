@@ -1,0 +1,234 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    function isValidProfile(data) {
+      return data.userId is string &&
+             data.shopName is string && data.shopName.size() > 0 && data.shopName.size() <= 200 &&
+             data.ownerName is string && data.ownerName.size() > 0 && data.ownerName.size() <= 200 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidProduct(data) {
+      return data.userId is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.category is string && data.category.size() > 0 && data.category.size() <= 100 &&
+             data.purchasePrice is number && data.purchasePrice >= 0 &&
+             data.sellingPrice is number && data.sellingPrice >= 0 &&
+             data.currentStock is number &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidSale(data) {
+      return data.userId is string &&
+             data.invoiceNumber is string && data.invoiceNumber.size() > 0 &&
+             data.totalAmount is number &&
+             data.totalCost is number &&
+             data.grossProfit is number &&
+             data.saleDate is string &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidPurchase(data) {
+      return data.userId is string &&
+             data.productName is string && data.productName.size() > 0 &&
+             data.quantity is number && data.quantity > 0 &&
+             data.purchasePrice is number && data.purchasePrice >= 0 &&
+             data.totalAmount is number && data.totalAmount >= 0 &&
+             data.purchaseDate is string &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidExpense(data) {
+      return data.userId is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.amount is number && data.amount > 0 &&
+             data.category is string &&
+             data.expenseDate is string &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidCustomer(data) {
+      return data.userId is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.mobile is string &&
+             data.remainingDue is number &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidCustomerTx(data) {
+      return data.userId is string &&
+             data.customerId is string &&
+             data.type is string && (data.type == 'DUE' || data.type == 'PAYMENT') &&
+             data.amount is number && data.amount > 0 &&
+             data.transactionDate is string &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidLoan(data) {
+      return data.userId is string &&
+             data.personName is string && data.personName.size() > 0 && data.personName.size() <= 200 &&
+             data.loanType is string &&
+             data.amount is number && data.amount > 0 &&
+             data.remainingAmount is number &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidMobileBankingTx(data) {
+      return data.userId is string &&
+             data.provider is string && (data.provider == 'BKASH' || data.provider == 'NAGAD') &&
+             data.type is string &&
+             data.amount is number && data.amount > 0 &&
+             data.transactionDate is string &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidFlexiloadTx(data) {
+      return data.userId is string &&
+             data.mobileNumber is string && data.mobileNumber.size() > 0 &&
+             data.operator is string &&
+             data.rechargeAmount is number && data.rechargeAmount > 0 &&
+             data.transactionDate is string &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidDailyClosing(data) {
+      return data.userId is string &&
+             data.closingDate is string &&
+             data.expectedCash is number &&
+             data.actualCash is number &&
+             data.cashDifference is number &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidCategory(data) {
+      return data.userId is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    // User data trees isolated by authenticated userId
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /profile/{profileId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidProfile(incoming());
+        allow update: if isOwner(userId) && isValidProfile(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /products/{productId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidProduct(incoming());
+        allow update: if isOwner(userId) && isValidProduct(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /sales/{saleId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidSale(incoming());
+        allow update: if isOwner(userId) && isValidSale(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /purchases/{purchaseId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidPurchase(incoming());
+        allow update: if isOwner(userId) && isValidPurchase(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /expenses/{expenseId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidExpense(incoming());
+        allow update: if isOwner(userId) && isValidExpense(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /customers/{customerId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidCustomer(incoming());
+        allow update: if isOwner(userId) && isValidCustomer(incoming());
+        allow delete: if isOwner(userId);
+
+        match /transactions/{transactionId} {
+          allow get, list: if isOwner(userId);
+          allow create: if isOwner(userId) && isValidCustomerTx(incoming());
+          allow update: if isOwner(userId) && isValidCustomerTx(incoming());
+          allow delete: if isOwner(userId);
+        }
+      }
+
+      match /loans/{loanId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidLoan(incoming());
+        allow update: if isOwner(userId) && isValidLoan(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /mobile_banking/{txId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidMobileBankingTx(incoming());
+        allow update: if isOwner(userId) && isValidMobileBankingTx(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /flexiload/{txId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidFlexiloadTx(incoming());
+        allow update: if isOwner(userId) && isValidFlexiloadTx(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /daily_closings/{closingId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidDailyClosing(incoming());
+        allow update: if isOwner(userId) && isValidDailyClosing(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /categories/{categoryId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidCategory(incoming());
+        allow update: if isOwner(userId) && isValidCategory(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /stock_additions/{additionId} {
+        allow get, list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId);
+      }
+
+      match /cash_memos/{memoId} {
+        allow get, list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId);
+      }
+    }
+  }
+}

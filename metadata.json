@@ -1,0 +1,6 @@
+{
+  "name": "Yasin Telecom",
+  "description": "Smart shop manager for Yasin Telecom: inventory, daily sales, expenses, customer dues, loans, mobile banking, and closing reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

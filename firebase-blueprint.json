@@ -1,0 +1,272 @@
+{
+  "entities": {
+    "ShopProfile": {
+      "title": "ShopProfile",
+      "description": "Profile information and settings for Yasin Telecom.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "shopName": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "currency": { "type": "string" },
+        "lowStockAlertThreshold": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "shopName", "ownerName", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Product inventory item with stock and pricing.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "brand": { "type": "string" },
+        "model": { "type": "string" },
+        "purchasePrice": { "type": "number" },
+        "sellingPrice": { "type": "number" },
+        "currentStock": { "type": "integer" },
+        "minStockAlert": { "type": "integer" },
+        "productCode": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "category", "purchasePrice", "sellingPrice", "currentStock", "createdAt"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Sales invoice transaction recording sold items and profit.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "itemsSummary": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "totalCost": { "type": "number" },
+        "grossProfit": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "dueAmount": { "type": "number" },
+        "saleDate": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "invoiceNumber", "totalAmount", "totalCost", "grossProfit", "saleDate", "createdAt"]
+    },
+    "Purchase": {
+      "title": "Purchase",
+      "description": "Stock purchase order increasing inventory.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "productName": { "type": "string" },
+        "productId": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "quantity": { "type": "integer" },
+        "purchasePrice": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "purchaseDate": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "productName", "quantity", "purchasePrice", "totalAmount", "purchaseDate", "createdAt"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Daily operational expense record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "expenseDate": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "amount", "category", "expenseDate", "createdAt"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer profile tracking customer dues and payments.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "mobile": { "type": "string" },
+        "address": { "type": "string" },
+        "totalDue": { "type": "number" },
+        "totalPaid": { "type": "number" },
+        "remainingDue": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "mobile", "remainingDue", "createdAt"]
+    },
+    "CustomerTransaction": {
+      "title": "CustomerTransaction",
+      "description": "Due or payment event for a customer.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "type": { "type": "string" },
+        "amount": { "type": "number" },
+        "notes": { "type": "string" },
+        "transactionDate": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "customerId", "type", "amount", "transactionDate", "createdAt"]
+    },
+    "Loan": {
+      "title": "Loan",
+      "description": "Personal financial loan tracking money lent or borrowed.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "personName": { "type": "string" },
+        "mobile": { "type": "string" },
+        "loanType": { "type": "string" },
+        "amount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "description": { "type": "string" },
+        "expectedPaymentDate": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "personName", "loanType", "amount", "remainingAmount", "createdAt"]
+    },
+    "MobileBankingTx": {
+      "title": "MobileBankingTx",
+      "description": "Manual ledger entry for bKash or Nagad cash-in/cash-out.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "provider": { "type": "string" },
+        "type": { "type": "string" },
+        "amount": { "type": "number" },
+        "commissionProfit": { "type": "number" },
+        "serviceCharge": { "type": "number" },
+        "customerPhone": { "type": "string" },
+        "notes": { "type": "string" },
+        "transactionDate": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "provider", "type", "amount", "transactionDate", "createdAt"]
+    },
+    "FlexiloadTx": {
+      "title": "FlexiloadTx",
+      "description": "Manual ledger entry for mobile airtime recharge.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "operator": { "type": "string" },
+        "rechargeAmount": { "type": "number" },
+        "customerPayment": { "type": "number" },
+        "rechargeCost": { "type": "number" },
+        "profit": { "type": "number" },
+        "transactionDate": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "mobileNumber", "operator", "rechargeAmount", "transactionDate", "createdAt"]
+    },
+    "DailyClosing": {
+      "title": "DailyClosing",
+      "description": "End-of-day financial reconciliation summary.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "closingDate": { "type": "string" },
+        "productSales": { "type": "number" },
+        "mobileBankingVolume": { "type": "number" },
+        "flexiloadVolume": { "type": "number" },
+        "grossProfit": { "type": "number" },
+        "totalExpenses": { "type": "number" },
+        "customerPaymentsReceived": { "type": "number" },
+        "totalCashReceived": { "type": "number" },
+        "totalCashPaid": { "type": "number" },
+        "expectedCash": { "type": "number" },
+        "actualCash": { "type": "number" },
+        "cashDifference": { "type": "number" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "closingDate", "expectedCash", "actualCash", "cashDifference", "createdAt"]
+    },
+    "CustomCategory": {
+      "title": "CustomCategory",
+      "description": "Custom inventory category created by user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/profile/{profileId}": {
+      "schema": "ShopProfile",
+      "description": "User shop profile and configurations."
+    },
+    "/users/{userId}/products/{productId}": {
+      "schema": "Product",
+      "description": "Products inventory for the shop."
+    },
+    "/users/{userId}/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Daily sales invoices."
+    },
+    "/users/{userId}/purchases/{purchaseId}": {
+      "schema": "Purchase",
+      "description": "Stock purchase history."
+    },
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Daily operational expenses."
+    },
+    "/users/{userId}/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customer dues and credit profiles."
+    },
+    "/users/{userId}/customers/{customerId}/transactions/{transactionId}": {
+      "schema": "CustomerTransaction",
+      "description": "Customer due and payment records."
+    },
+    "/users/{userId}/loans/{loanId}": {
+      "schema": "Loan",
+      "description": "Personal loans lent and borrowed."
+    },
+    "/users/{userId}/mobile_banking/{txId}": {
+      "schema": "MobileBankingTx",
+      "description": "bKash and Nagad transaction ledger."
+    },
+    "/users/{userId}/flexiload/{txId}": {
+      "schema": "FlexiloadTx",
+      "description": "Flexiload recharge records."
+    },
+    "/users/{userId}/daily_closings/{closingId}": {
+      "schema": "DailyClosing",
+      "description": "Daily shop closing reports."
+    },
+    "/users/{userId}/categories/{categoryId}": {
+      "schema": "CustomCategory",
+      "description": "Custom category definitions."
+    }
+  }
+}
