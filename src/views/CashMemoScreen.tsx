@@ -17,7 +17,13 @@ import {
   Receipt,
   Smartphone,
   Hash,
+  Download,
+  Loader2,
+  ExternalLink,
+  Send,
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import { toJpeg } from 'html-to-image';
 import { useShop } from '../context/ShopContext';
 import { CashMemo, CashMemoItem } from '../types';
 import { formatTaka, getTodayStr, getCurrentTimeStr, generateMemoNumber } from '../utils/formatters';
@@ -37,6 +43,19 @@ export const CashMemoScreen: React.FC = () => {
   const [activeView, setActiveView] = useState<'FORM' | 'VIEW' | 'HISTORY'>('FORM');
   const [selectedMemo, setSelectedMemo] = useState<CashMemo | null>(cashMemos[0] || null);
   const [memoStyle, setMemoStyle] = useState<'ORANGE_AMBER' | 'CYAN_BLUE' | 'THERMAL_RECEIPT'>('ORANGE_AMBER');
+
+  // PDF & WhatsApp state
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isSharingWhatsApp, setIsSharingWhatsApp] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [pdfPreviewImg, setPdfPreviewImg] = useState<string | null>(null);
+  const [pdfInstance, setPdfInstance] = useState<jsPDF | null>(null);
+
+  // WhatsApp prompt modal state when customer mobile is not in memo
+  const [showWhatsAppPromptModal, setShowWhatsAppPromptModal] = useState(false);
+  const [whatsAppInputMobile, setWhatsAppInputMobile] = useState('');
+  const [pendingShareMemo, setPendingShareMemo] = useState<CashMemo | null>(null);
 
   // Form states
   const [memoNumber, setMemoNumber] = useState(generateMemoNumber());
@@ -171,8 +190,149 @@ export const CashMemoScreen: React.FC = () => {
     setActiveView('VIEW');
   };
 
+  // Generate Standard 5.5 x 8.5 Inch PDF
+  const generateMemoPdf = async (
+    memo: CashMemo
+  ): Promise<{ blob: Blob; url: string; pdf: jsPDF; imgData: string } | null> => {
+    const element = document.getElementById('printable-cash-memo');
+    if (!element) return null;
+
+    try {
+      // Use html-to-image which renders modern CSS (oklch, Tailwind v4) natively via browser SVG/Canvas
+      const imgData = await toJpeg(element, {
+        quality: 0.96,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        skipFonts: true,
+      });
+
+      // Standard 5.5 x 8.5 inches (Statement size)
+      const pdf = new jsPDF({
+        unit: 'in',
+        format: [5.5, 8.5],
+        orientation: 'portrait',
+      });
+
+      pdf.addImage(imgData, 'JPEG', 0, 0, 5.5, 8.5, undefined, 'FAST');
+
+      const blob = pdf.output('blob');
+      const url = URL.createObjectURL(blob);
+      return { blob, url, pdf, imgData };
+    } catch (err) {
+      console.error('Failed to generate PDF with skipFonts, trying standard options:', err);
+      try {
+        const imgData = await toJpeg(element, {
+          quality: 0.95,
+          pixelRatio: 2,
+          backgroundColor: '#ffffff',
+        });
+
+        const pdf = new jsPDF({
+          unit: 'in',
+          format: [5.5, 8.5],
+          orientation: 'portrait',
+        });
+
+        pdf.addImage(imgData, 'JPEG', 0, 0, 5.5, 8.5, undefined, 'FAST');
+
+        const blob = pdf.output('blob');
+        const url = URL.createObjectURL(blob);
+        return { blob, url, pdf, imgData };
+      } catch (fallbackErr) {
+        console.error('Failed to generate PDF completely:', fallbackErr);
+        return null;
+      }
+    }
+  };
+
+  // Instant PDF View & Print
+  const handleOpenPdfPreview = async () => {
+    if (!selectedMemo) return;
+    setIsGeneratingPdf(true);
+    try {
+      const result = await generateMemoPdf(selectedMemo);
+      if (result) {
+        setPdfPreviewUrl(result.url);
+        setPdfPreviewImg(result.imgData);
+        setPdfInstance(result.pdf);
+        setShowPdfModal(true);
+      } else {
+        window.print();
+      }
+    } catch (err) {
+      console.error(err);
+      window.print();
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  // WhatsApp Share with PDF
+  const handleShareWhatsAppPdf = async (memo: CashMemo, overrideMobile?: string) => {
+    const rawMobile = (overrideMobile || memo.customerMobile || '').trim();
+    if (!rawMobile) {
+      setPendingShareMemo(memo);
+      setWhatsAppInputMobile('');
+      setShowWhatsAppPromptModal(true);
+      return;
+    }
+
+    setShowWhatsAppPromptModal(false);
+    setIsSharingWhatsApp(true);
+
+    try {
+      const cleanPhone = rawMobile.replace(/[+\-\s]/g, '');
+      let formattedPhone = cleanPhone;
+      if (cleanPhone.startsWith('01')) {
+        formattedPhone = `88${cleanPhone}`;
+      } else if (cleanPhone.startsWith('1')) {
+        formattedPhone = `880${cleanPhone}`;
+      }
+
+      // Generate the 5.5 x 8.5 inch PDF
+      const result = await generateMemoPdf(memo);
+      if (!result) {
+        showMessage('PDF তৈরিতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।');
+        return;
+      }
+
+      const fileName = `CashMemo_${memo.memoNumber}.pdf`;
+      const pdfFile = new File([result.blob], fileName, { type: 'application/pdf' });
+
+      // Try native Web Share API with files (Android / iOS / Mobile WhatsApp)
+      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        try {
+          await navigator.share({
+            files: [pdfFile],
+            title: `ক্যাশ মেমো ${memo.memoNumber}`,
+            text: `ইয়াছিন টেলিকম - ক্যাশ মেমো নং: ${memo.memoNumber}`,
+          });
+          showMessage('হোয়াটসঅ্যাপে ক্যাশ মেমো PDF পাঠানো হয়েছে!');
+          return;
+        } catch (shareErr) {
+          if ((shareErr as Error).name === 'AbortError') return;
+        }
+      }
+
+      // Desktop / Browser Fallback: Download PDF and open customer's WhatsApp
+      result.pdf.save(fileName);
+      const waUrl = formattedPhone ? `https://wa.me/${formattedPhone}` : `https://api.whatsapp.com/send`;
+      window.open(waUrl, '_blank');
+      showMessage('ক্যাশ মেমোর PDF ডাউনলোড হয়েছে এবং গ্রাহকের হোয়াটসঅ্যাপ চ্যাট খোলা হচ্ছে। চ্যাটে PDF ফাইলটি সিলেক্ট করে পাঠিয়ে দিন!');
+    } catch (err) {
+      console.error(err);
+      showMessage('হোয়াটসঅ্যাপে শেয়ার করার সময় সমস্যা হয়েছে।');
+    } finally {
+      setIsSharingWhatsApp(false);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleShareWhatsApp = (memo: CashMemo) => {
+    handleShareWhatsAppPdf(memo);
   };
 
   const getPlainTextReceipt = (memo: CashMemo) => {
@@ -210,24 +370,6 @@ export const CashMemoScreen: React.FC = () => {
     text += `📌 ${memo.notes || 'বিক্রিত মাল ফেরত নেওয়া হয় না।'}\n`;
     text += `🙏 ধন্যবাদ, আবার আসবেন!\n`;
     return text;
-  };
-
-  const handleShareWhatsApp = (memo: CashMemo) => {
-    const rawPhone = memo.customerMobile.trim().replace(/[+\-\s]/g, '');
-    let formattedPhone = rawPhone;
-    if (rawPhone.startsWith('01')) {
-      formattedPhone = `88${rawPhone}`;
-    } else if (rawPhone.startsWith('1')) {
-      formattedPhone = `880${rawPhone}`;
-    }
-
-    const text = getPlainTextReceipt(memo);
-    const encoded = encodeURIComponent(text);
-    const url = formattedPhone
-      ? `https://wa.me/${formattedPhone}?text=${encoded}`
-      : `https://api.whatsapp.com/send?text=${encoded}`;
-
-    window.open(url, '_blank');
   };
 
   const handleCopyReceipt = (memo: CashMemo) => {
@@ -288,8 +430,8 @@ export const CashMemoScreen: React.FC = () => {
               onChange={(e) => setMemoStyle(e.target.value as any)}
               className="text-xs font-bold bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-slate-700 shadow-2xs focus:ring-2 focus:ring-orange-500 focus:outline-none"
             >
-              <option value="ORANGE_AMBER">অরেঞ্জ-অ্যাম্বার এক্সিকিউটিভ (A4)</option>
-              <option value="CYAN_BLUE">সায়ান-ব্লু মোবাইল স্টাইল (A4)</option>
+              <option value="ORANGE_AMBER">স্ট্যান্ডার্ড সাইজ (৫.৫ × ৮.৫ ইঞ্চি) - অরেঞ্জ</option>
+              <option value="CYAN_BLUE">স্ট্যান্ডার্ড সাইজ (৫.৫ × ৮.৫ ইঞ্চি) - সায়ান</option>
               <option value="THERMAL_RECEIPT">থার্মাল পিওএস রসিদ (58mm/80mm POS)</option>
             </select>
           </div>
@@ -590,32 +732,47 @@ export const CashMemoScreen: React.FC = () => {
                 title="টেক্সট কপি করুন"
               >
                 <Copy className="w-3.5 h-3.5" />
-                <span>কপি</span>
+                <span className="hidden sm:inline">কপি</span>
               </button>
               <button
                 type="button"
-                onClick={() => handleShareWhatsApp(selectedMemo)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow transition"
+                disabled={isSharingWhatsApp || isGeneratingPdf}
+                onClick={() => handleShareWhatsAppPdf(selectedMemo)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow transition active:scale-95 disabled:opacity-50"
+                title="গ্রাহকের নম্বরে সরাসরি PDF পাঠান"
               >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>WhatsApp শেয়ার</span>
+                {isSharingWhatsApp ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Share2 className="w-3.5 h-3.5" />
+                )}
+                <span>হোয়াটসঅ্যাপে PDF পাঠান</span>
               </button>
               <button
                 type="button"
-                onClick={handlePrint}
-                className="flex items-center gap-1 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition"
+                disabled={isGeneratingPdf}
+                onClick={handleOpenPdfPreview}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition active:scale-95 disabled:opacity-50"
+                title="পিডিএফ ভিউ ও প্রিন্ট"
               >
-                <Printer className="w-3.5 h-3.5" />
-                <span>প্রিন্ট / PDF</span>
+                {isGeneratingPdf ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Printer className="w-3.5 h-3.5" />
+                )}
+                <span>প্রিন্ট / PDF ভিউ</span>
               </button>
             </div>
           </div>
 
-          {/* Printable Cash Memo Document */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden max-w-2xl mx-auto print:shadow-none print:border-none print:max-w-none print:w-full">
+          {/* Printable Cash Memo Document (Standard 5.5 x 8.5 Inches) */}
+          <div
+            id="printable-cash-memo"
+            className="memo-printable-area bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden w-full max-w-[5.5in] mx-auto print:shadow-none print:border-none print:max-w-none print:w-full"
+          >
             {memoStyle === 'ORANGE_AMBER' ? (
-              /* ORANGE-AMBER EXECUTIVE DESIGN (A4) */
-              <div className="p-6 sm:p-8 relative bg-white min-h-[750px] flex flex-col justify-between text-slate-900">
+              /* ORANGE-AMBER EXECUTIVE DESIGN (5.5 x 8.5 INCHES) */
+              <div className="p-4 sm:p-5 relative bg-white min-h-[780px] flex flex-col justify-between text-slate-900">
                 {/* Official Visiting Card Header (No separate loose text shop name or address) */}
                 <div>
                   <div className="rounded-xl overflow-hidden border border-slate-200 shadow-xs mb-3">
@@ -627,38 +784,47 @@ export const CashMemoScreen: React.FC = () => {
                     />
                   </div>
 
-                  {/* Memo info & Customer details */}
-                  <div className="mt-4 pt-3 border-t border-slate-200 grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-800">No:</span>
-                        <span className="font-black text-slate-900">{selectedMemo.memoNumber}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="bg-slate-900 text-white px-2 py-0.5 rounded font-bold text-[10px]">
-                          Name:
-                        </span>
-                        <span className="font-bold text-slate-800 border-b border-slate-300 flex-1 pb-0.5">
-                          {selectedMemo.customerName || 'নগদ ক্রেতা'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="bg-slate-900 text-white px-2 py-0.5 rounded font-bold text-[10px]">
-                          Address:
-                        </span>
-                        <span className="text-slate-700 border-b border-slate-300 flex-1 pb-0.5 truncate">
-                          {selectedMemo.customerAddress || 'বুল্লা বাজার'}
-                          {selectedMemo.customerMobile ? ` | 📞 ${selectedMemo.customerMobile}` : ''}
-                        </span>
-                      </div>
+                  {/* Memo info & Customer details (3 lines format) */}
+                  <div className="mt-3.5 pt-2.5 border-t border-slate-300 space-y-2 text-xs">
+                    {/* Line 1: উপরের লাইনে নাম */}
+                    <div className="flex items-center gap-2">
+                      <span className="bg-slate-900 text-white px-2.5 py-0.5 rounded font-bold text-[10px] tracking-wide shrink-0">
+                        Name:
+                      </span>
+                      <span className="font-bold text-slate-900 border-b border-slate-300 flex-1 pb-0.5 text-xs sm:text-sm truncate">
+                        {selectedMemo.customerName || 'নগদ ক্রেতা'}
+                      </span>
                     </div>
 
-                    <div className="flex flex-col items-end justify-start">
-                      <div className="flex items-center gap-1">
-                        <span className="bg-slate-900 text-white px-2 py-0.5 rounded font-bold text-[10px]">
+                    {/* Line 2: দ্বিতীয় লাইনে ঠিকানা */}
+                    <div className="flex items-center gap-2">
+                      <span className="bg-slate-900 text-white px-2.5 py-0.5 rounded font-bold text-[10px] tracking-wide shrink-0">
+                        Address:
+                      </span>
+                      <span className="text-slate-700 border-b border-slate-300 flex-1 pb-0.5 text-xs truncate">
+                        {selectedMemo.customerAddress || 'বুল্লা বাজার'}
+                        {selectedMemo.customerMobile ? ` | 📞 ${selectedMemo.customerMobile}` : ''}
+                      </span>
+                    </div>
+
+                    {/* Line 3: তৃতীয় লাইনের প্রথমে সিরিয়াল নং শেষে তারিখ */}
+                    <div className="flex items-center justify-between pt-0.5">
+                      {/* প্রথমে সিরিয়াল নং */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="bg-slate-900 text-white px-2 py-0.5 rounded font-bold text-[10px] tracking-wide shrink-0">
+                          No:
+                        </span>
+                        <span className="font-black text-slate-900 text-xs sm:text-sm tracking-wider">
+                          {selectedMemo.memoNumber}
+                        </span>
+                      </div>
+
+                      {/* শেষে তারিখ */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="bg-slate-900 text-white px-2 py-0.5 rounded font-bold text-[10px] tracking-wide shrink-0">
                           Date:
                         </span>
-                        <div className="flex border border-slate-900 rounded font-bold text-[11px] overflow-hidden">
+                        <div className="flex border border-slate-900 rounded font-bold text-[11px] overflow-hidden bg-white shadow-2xs">
                           {selectedMemo.date.split('-').map((part, i) => (
                             <span key={i} className="px-2 py-0.5 border-r last:border-r-0 border-slate-300 bg-slate-50">
                               {part}
@@ -669,34 +835,34 @@ export const CashMemoScreen: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Items Table */}
-                  <div className="mt-5 border border-slate-300 rounded-lg overflow-hidden">
-                    <table className="w-full text-left text-xs border-collapse">
+                  {/* Items Table - Proportional Table-Fixed to Prevent Amount Cut-Off */}
+                  <div className="mt-4 border border-slate-300 rounded-lg overflow-hidden bg-white">
+                    <table className="w-full table-fixed text-left text-xs border-collapse">
                       <thead>
                         <tr className="bg-gradient-to-r from-orange-600 via-orange-700 to-red-800 text-white font-bold">
-                          <th className="py-2 px-3 w-12 text-center border-r border-orange-700">No:</th>
-                          <th className="py-2 px-3 border-r border-orange-700">Description (পণ্যের বিবরণ)</th>
-                          <th className="py-2 px-3 w-20 text-center border-r border-orange-700">Quantity</th>
-                          <th className="py-2 px-3 w-24 text-right border-r border-orange-700">Rate</th>
-                          <th className="py-2 px-3 w-28 text-right">Amount</th>
+                          <th className="py-2 px-1.5 w-[8%] text-center border-r border-orange-700 text-[11px]">No:</th>
+                          <th className="py-2 px-2.5 w-[46%] border-r border-orange-700 text-[11px]">Description (পণ্যের বিবরণ)</th>
+                          <th className="py-2 px-1.5 w-[14%] text-center border-r border-orange-700 text-[11px]">Quantity</th>
+                          <th className="py-2 px-2 w-[16%] text-right border-r border-orange-700 text-[11px]">Rate</th>
+                          <th className="py-2 px-2 w-[16%] text-right text-[11px]">Amount</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
                         {selectedMemo.items.map((item, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/50">
-                            <td className="py-2 px-3 text-center text-slate-500 border-r border-slate-200 font-medium">
+                            <td className="py-1.5 px-1.5 text-center text-slate-500 border-r border-slate-200 font-medium text-[11px]">
                               {idx + 1}
                             </td>
-                            <td className="py-2 px-3 font-bold text-slate-800 border-r border-slate-200">
+                            <td className="py-1.5 px-2.5 font-bold text-slate-800 border-r border-slate-200 text-[11px] break-words">
                               {item.description}
                             </td>
-                            <td className="py-2 px-3 text-center bg-orange-50/40 border-r border-slate-200 font-semibold">
+                            <td className="py-1.5 px-1.5 text-center bg-orange-50/40 border-r border-slate-200 font-semibold text-[11px]">
                               {item.quantity}
                             </td>
-                            <td className="py-2 px-3 text-right border-r border-slate-200 font-medium">
+                            <td className="py-1.5 px-2 text-right border-r border-slate-200 font-medium text-[11px]">
                               {formatTaka(item.rate)}
                             </td>
-                            <td className="py-2 px-3 text-right bg-orange-50/40 font-black text-orange-700">
+                            <td className="py-1.5 px-2 text-right bg-orange-50/40 font-black text-orange-700 text-[11px]">
                               {formatTaka(item.amount)}
                             </td>
                           </tr>
@@ -704,7 +870,7 @@ export const CashMemoScreen: React.FC = () => {
 
                         {/* Minimum empty rows for authentic memo look */}
                         {Array.from({ length: Math.max(0, 4 - selectedMemo.items.length) }).map((_, i) => (
-                          <tr key={`empty-${i}`} className="h-7">
+                          <tr key={`empty-${i}`} className="h-6">
                             <td className="border-r border-slate-200"></td>
                             <td className="border-r border-slate-200"></td>
                             <td className="border-r border-slate-200 bg-orange-50/20"></td>
@@ -715,45 +881,45 @@ export const CashMemoScreen: React.FC = () => {
 
                         {/* Total Quantity Row */}
                         <tr className="border-t-2 border-slate-400 bg-slate-50/70">
-                          <td colSpan={2} className="py-1.5 px-3 font-bold text-slate-700 text-right border-r border-slate-200">
+                          <td colSpan={2} className="py-1.5 px-2 font-bold text-slate-700 text-right border-r border-slate-200 text-[11px]">
                             মোট আইটেম সংখ্যা (Total Quantity):
                           </td>
-                          <td className="py-1.5 px-3 text-center font-black text-slate-900 border-r border-slate-200 bg-orange-50/60">
+                          <td className="py-1.5 px-1.5 text-center font-black text-slate-900 border-r border-slate-200 bg-orange-50/60 text-[11px]">
                             {selectedMemo.items.reduce((acc, it) => acc + (it.quantity || 0), 0)} টি
                           </td>
-                          <td className="py-1.5 px-3 text-right font-bold text-orange-700 bg-orange-50/80 border-r border-slate-200">
+                          <td className="py-1.5 px-2 text-right font-bold text-orange-700 bg-orange-50/80 border-r border-slate-200 text-[11px]">
                             Total
                           </td>
-                          <td className="py-1.5 px-3 text-right font-black text-slate-900 bg-orange-50/80">
+                          <td className="py-1.5 px-2 text-right font-black text-slate-900 bg-orange-50/80 text-[11px]">
                             {formatTaka(selectedMemo.subtotal)}
                           </td>
                         </tr>
                         {selectedMemo.discount > 0 && (
                           <tr>
                             <td colSpan={3} className="border-r border-slate-200"></td>
-                            <td className="py-1.5 px-3 text-right font-bold text-slate-600 bg-slate-50 border-r border-slate-200">
+                            <td className="py-1.5 px-2 text-right font-bold text-slate-600 bg-slate-50 border-r border-slate-200 text-[11px]">
                               Discount
                             </td>
-                            <td className="py-1.5 px-3 text-right font-black text-slate-800 bg-slate-50">
+                            <td className="py-1.5 px-2 text-right font-black text-slate-800 bg-slate-50 text-[11px]">
                               -{formatTaka(selectedMemo.discount)}
                             </td>
                           </tr>
                         )}
                         <tr>
                           <td colSpan={3} className="border-r border-slate-200"></td>
-                          <td className="py-1.5 px-3 text-right font-bold text-orange-700 bg-orange-50/80 border-r border-slate-200">
+                          <td className="py-1.5 px-2 text-right font-bold text-orange-700 bg-orange-50/80 border-r border-slate-200 text-[11px]">
                             Advance
                           </td>
-                          <td className="py-1.5 px-3 text-right font-black text-emerald-700 bg-orange-50/80">
+                          <td className="py-1.5 px-2 text-right font-black text-emerald-700 bg-orange-50/80 text-[11px]">
                             {formatTaka(selectedMemo.paidAmount)}
                           </td>
                         </tr>
                         <tr>
                           <td colSpan={3} className="border-r border-slate-200"></td>
-                          <td className="py-1.5 px-3 text-right font-bold text-orange-700 bg-orange-50/80 border-r border-slate-200">
+                          <td className="py-1.5 px-2 text-right font-bold text-orange-700 bg-orange-50/80 border-r border-slate-200 text-[11px]">
                             Due
                           </td>
-                          <td className="py-1.5 px-3 text-right font-black text-red-600 bg-orange-50/80">
+                          <td className="py-1.5 px-2 text-right font-black text-red-600 bg-orange-50/80 text-[11px]">
                             {formatTaka(selectedMemo.dueAmount)}
                           </td>
                         </tr>
@@ -890,8 +1056,8 @@ export const CashMemoScreen: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* CYAN-BLUE MOBILE STYLE DESIGN (A4) */
-              <div className="p-6 sm:p-8 relative bg-white min-h-[750px] flex flex-col justify-between text-slate-900">
+              /* CYAN-BLUE MOBILE STYLE DESIGN (5.5 x 8.5 INCHES) */
+              <div className="p-4 sm:p-5 relative bg-white min-h-[780px] flex flex-col justify-between text-slate-900">
                 <div>
                   {/* Official Visiting Card Header */}
                   <div className="rounded-xl overflow-hidden border border-slate-200 shadow-xs mb-3">
@@ -903,67 +1069,84 @@ export const CashMemoScreen: React.FC = () => {
                     />
                   </div>
 
-                  {/* Customer details banner */}
-                  <div className="grid grid-cols-2 gap-4 text-xs bg-sky-50/60 p-3.5 rounded-xl border border-sky-100 mt-8">
-                    <div>
-                      <p><span className="font-bold text-slate-600">মেমো নং:</span> <strong className="text-sky-800">{selectedMemo.memoNumber}</strong></p>
-                      <p className="mt-1"><span className="font-bold text-slate-600">নাম:</span> <strong>{selectedMemo.customerName || 'নগদ ক্রেতা'}</strong></p>
-                      {selectedMemo.customerMobile && (
-                        <p className="mt-1"><span className="font-bold text-slate-600">মোবাইল:</span> {selectedMemo.customerMobile}</p>
-                      )}
+                  {/* Customer details banner (3 lines format) */}
+                  <div className="bg-sky-50/70 p-3 rounded-xl border border-sky-100 mt-4 space-y-2 text-xs">
+                    {/* Line 1: উপরের লাইনে নাম */}
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sky-950 bg-sky-200/80 px-2 py-0.5 rounded text-[10px] shrink-0">নাম:</span>
+                      <strong className="text-slate-900 border-b border-sky-200 flex-1 pb-0.5 text-xs sm:text-sm truncate">
+                        {selectedMemo.customerName || 'নগদ ক্রেতা'}
+                      </strong>
                     </div>
-                    <div className="text-right">
-                      <p><span className="font-bold text-slate-600">তারিখ:</span> {selectedMemo.date}</p>
-                      <p className="mt-1"><span className="font-bold text-slate-600">ঠিকানা:</span> {selectedMemo.customerAddress || 'বুল্লা বাজার'}</p>
+
+                    {/* Line 2: দ্বিতীয় লাইনে ঠিকানা */}
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sky-950 bg-sky-200/80 px-2 py-0.5 rounded text-[10px] shrink-0">ঠিকানা:</span>
+                      <span className="text-slate-700 border-b border-sky-200 flex-1 pb-0.5 text-xs truncate">
+                        {selectedMemo.customerAddress || 'বুল্লা বাজার'}
+                        {selectedMemo.customerMobile ? ` | 📞 ${selectedMemo.customerMobile}` : ''}
+                      </span>
+                    </div>
+
+                    {/* Line 3: তৃতীয় লাইনের প্রথমে সিরিয়াল নং শেষে তারিখ */}
+                    <div className="flex items-center justify-between pt-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-sky-950 bg-sky-200/80 px-2 py-0.5 rounded text-[10px] shrink-0">মেমো নং:</span>
+                        <strong className="text-sky-900 text-xs sm:text-sm tracking-wider">{selectedMemo.memoNumber}</strong>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-sky-950 bg-sky-200/80 px-2 py-0.5 rounded text-[10px] shrink-0">তারিখ:</span>
+                        <span className="text-slate-800 font-bold bg-white px-2 py-0.5 rounded border border-sky-200 text-[11px]">{selectedMemo.date}</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Items Table */}
-                  <div className="mt-4 border border-sky-200 rounded-xl overflow-hidden">
-                    <table className="w-full text-xs">
+                  {/* Items Table - Proportional Table-Fixed to Prevent Amount Cut-Off */}
+                  <div className="mt-4 border border-sky-200 rounded-xl overflow-hidden bg-white">
+                    <table className="w-full table-fixed text-xs border-collapse">
                       <thead className="bg-sky-600 text-white font-bold">
                         <tr>
-                          <th className="py-2 px-3 text-center w-12">নং</th>
-                          <th className="py-2 px-3 text-left">বিবরণ</th>
-                          <th className="py-2 px-3 text-center w-20">পরিমাণ</th>
-                          <th className="py-2 px-3 text-right w-24">দর</th>
-                          <th className="py-2 px-3 text-right w-28">টাকা</th>
+                          <th className="py-2 px-1.5 w-[8%] text-center text-[11px]">নং</th>
+                          <th className="py-2 px-2.5 w-[46%] text-left text-[11px]">বিবরণ</th>
+                          <th className="py-2 px-1.5 w-[14%] text-center text-[11px]">পরিমাণ</th>
+                          <th className="py-2 px-2 w-[16%] text-right text-[11px]">দর</th>
+                          <th className="py-2 px-2 w-[16%] text-right text-[11px]">টাকা</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-sky-100">
                         {selectedMemo.items.map((it, idx) => (
                           <tr key={idx} className="hover:bg-sky-50/30">
-                            <td className="py-2 px-3 text-center text-slate-500">{idx + 1}</td>
-                            <td className="py-2 px-3 font-semibold text-slate-800">{it.description}</td>
-                            <td className="py-2 px-3 text-center font-bold text-slate-700">{it.quantity}</td>
-                            <td className="py-2 px-3 text-right">{formatTaka(it.rate)}</td>
-                            <td className="py-2 px-3 text-right font-black text-sky-700">{formatTaka(it.amount)}</td>
+                            <td className="py-1.5 px-1.5 text-center text-slate-500 text-[11px]">{idx + 1}</td>
+                            <td className="py-1.5 px-2.5 font-semibold text-slate-800 text-[11px] break-words">{it.description}</td>
+                            <td className="py-1.5 px-1.5 text-center font-bold text-slate-700 text-[11px]">{it.quantity}</td>
+                            <td className="py-1.5 px-2 text-right text-[11px]">{formatTaka(it.rate)}</td>
+                            <td className="py-1.5 px-2 text-right font-black text-sky-700 text-[11px]">{formatTaka(it.amount)}</td>
                           </tr>
                         ))}
 
                         {/* Total Quantity */}
                         <tr className="bg-sky-50 font-bold border-t border-sky-300">
-                          <td colSpan={2} className="py-1.5 px-3 text-right text-slate-700">
+                          <td colSpan={2} className="py-1.5 px-2 text-right text-slate-700 text-[11px]">
                             মোট আইটেম সংখ্যা:
                           </td>
-                          <td className="py-1.5 px-3 text-center text-sky-800 font-black">
+                          <td className="py-1.5 px-1.5 text-center text-sky-800 font-black text-[11px]">
                             {selectedMemo.items.reduce((acc, it) => acc + (it.quantity || 0), 0)} টি
                           </td>
-                          <td className="py-1.5 px-3 text-right text-slate-700">উপ-মোট:</td>
-                          <td className="py-1.5 px-3 text-right font-black text-slate-900">{formatTaka(selectedMemo.subtotal)}</td>
+                          <td className="py-1.5 px-2 text-right text-slate-700 text-[11px]">উপ-মোট:</td>
+                          <td className="py-1.5 px-2 text-right font-black text-slate-900 text-[11px]">{formatTaka(selectedMemo.subtotal)}</td>
                         </tr>
 
                         {selectedMemo.discount > 0 && (
                           <tr>
                             <td colSpan={3}></td>
-                            <td className="py-1.5 px-3 text-right text-slate-600">ছাড়:</td>
-                            <td className="py-1.5 px-3 text-right font-bold text-slate-800">-{formatTaka(selectedMemo.discount)}</td>
+                            <td className="py-1.5 px-2 text-right text-slate-600 text-[11px]">ছাড়:</td>
+                            <td className="py-1.5 px-2 text-right font-bold text-slate-800 text-[11px]">-{formatTaka(selectedMemo.discount)}</td>
                           </tr>
                         )}
                         <tr>
                           <td colSpan={3}></td>
-                          <td className="py-1.5 px-3 text-right font-bold text-sky-800">সর্বমোট:</td>
-                          <td className="py-1.5 px-3 text-right font-black text-sky-900 text-sm">{formatTaka(selectedMemo.grandTotal)}</td>
+                          <td className="py-1.5 px-2 text-right font-bold text-sky-800 text-[11px]">সর্বমোট:</td>
+                          <td className="py-1.5 px-2 text-right font-black text-sky-900 text-xs sm:text-sm">{formatTaka(selectedMemo.grandTotal)}</td>
                         </tr>
                         <tr>
                           <td colSpan={3}></td>
@@ -1112,6 +1295,192 @@ export const CashMemoScreen: React.FC = () => {
               );
             })
           )}
+        </div>
+      )}
+
+      {/* PDF Generation Loader Overlay */}
+      {isGeneratingPdf && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-2xs flex items-center justify-center p-4 no-print animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl p-5 flex items-center gap-3.5 border border-slate-200 max-w-sm w-full">
+            <Loader2 className="w-7 h-7 text-orange-600 animate-spin shrink-0" />
+            <div>
+              <p className="text-xs font-bold text-slate-900">ক্যাশ মেমো PDF তৈরি হচ্ছে...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Instant PDF Viewer Modal */}
+      {showPdfModal && (pdfPreviewImg || pdfPreviewUrl) && selectedMemo && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 no-print animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-3xl flex flex-col max-h-[95vh] overflow-hidden">
+            {/* Modal Top Bar */}
+            <div className="p-3.5 sm:p-4 bg-slate-900 text-white flex items-center justify-between gap-3 border-b border-slate-800">
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
+                  PDF View
+                </h3>
+              </div>
+
+              {/* Action Buttons in PDF View Modal */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (pdfInstance) {
+                      pdfInstance.save(`CashMemo_${selectedMemo.memoNumber}.pdf`);
+                      showMessage('ক্যাশ মেমো PDF ডাউনলোড হয়েছে!');
+                    }
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition border border-slate-700"
+                  title="PDF ডাউনলোড করুন"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">ডাউনলোড</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSharingWhatsApp}
+                  onClick={() => handleShareWhatsAppPdf(selectedMemo)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs disabled:opacity-50"
+                  title="হোয়াটসঅ্যাপে পাঠান"
+                >
+                  {isSharingWhatsApp ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Share2 className="w-3.5 h-3.5" />
+                  )}
+                  <span className="hidden sm:inline">WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-xs"
+                  title="প্রিন্ট করুন"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">প্রিন্ট</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPdfModal(false)}
+                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition ml-1"
+                  title="বন্ধ করুন"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body - Crisp Visual Document Preview */}
+            <div className="flex-1 bg-slate-200/70 p-3 sm:p-5 overflow-auto flex items-center justify-center min-h-[480px]">
+              {pdfPreviewImg ? (
+                <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-300 w-full max-w-[5.5in] my-auto">
+                  <img
+                    src={pdfPreviewImg}
+                    alt={`ক্যাশ মেমো ${selectedMemo.memoNumber} PDF`}
+                    className="w-full h-auto object-contain block select-none"
+                    draggable={false}
+                  />
+                </div>
+              ) : pdfPreviewUrl ? (
+                <iframe
+                  src={pdfPreviewUrl}
+                  className="w-full h-[65vh] sm:h-[70vh] rounded-2xl shadow-inner border border-slate-300 bg-white"
+                  title={`ক্যাশ মেমো ${selectedMemo.memoNumber} PDF`}
+                />
+              ) : null}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 bg-white border-t border-slate-200 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setShowPdfModal(false)}
+                className="px-4 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition"
+              >
+                বন্ধ করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer WhatsApp Mobile Number Modal (Requirement 3: যে গ্রাহকের নাম্বারে হোয়াটসঅ্যাপে পিডিএফ শুধু যাবে) */}
+      {showWhatsAppPromptModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 no-print animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm w-full p-5 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">হোয়াটসঅ্যাপ নম্বর দিন</h3>
+                  <p className="text-[11px] text-slate-500">মেমোর PDF সরাসরি গ্রাহকের নম্বরে যাবে</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWhatsAppPromptModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                গ্রাহকের মোবাইল/হোয়াটসঅ্যাপ নম্বর:
+              </label>
+              <div className="relative">
+                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={whatsAppInputMobile}
+                  onChange={(e) => setWhatsAppInputMobile(e.target.value)}
+                  placeholder="017xxxxxxxx"
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && whatsAppInputMobile.trim() && pendingShareMemo) {
+                      handleShareWhatsAppPdf(pendingShareMemo, whatsAppInputMobile.trim());
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowWhatsAppPromptModal(false)}
+                className="px-4 py-2 border border-slate-200 rounded-xl font-semibold text-slate-600 hover:bg-slate-50 text-xs"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                disabled={!whatsAppInputMobile.trim() || isSharingWhatsApp}
+                onClick={() => {
+                  if (pendingShareMemo && whatsAppInputMobile.trim()) {
+                    handleShareWhatsAppPdf(pendingShareMemo, whatsAppInputMobile.trim());
+                  }
+                }}
+                className="flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md text-xs transition disabled:opacity-50"
+              >
+                {isSharingWhatsApp ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5" />
+                )}
+                <span>PDF পাঠান</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

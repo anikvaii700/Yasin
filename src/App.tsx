@@ -10,6 +10,8 @@ import { CashMemoScreen } from './views/CashMemoScreen';
 import { DueScreen } from './views/DueScreen';
 import { MoreScreen, MoreSubScreenType } from './views/MoreScreen';
 import { ResetDemoDataModal } from './components/ResetDemoDataModal';
+import { SplashScreen } from './components/SplashScreen';
+import { AndroidInstallModal } from './components/AndroidInstallModal';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 
 export const AppContent: React.FC = () => {
@@ -18,6 +20,7 @@ export const AppContent: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<MainTabType>('HOME');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showResetDemoModal, setShowResetDemoModal] = useState(false);
+  const [showAndroidInstallModal, setShowAndroidInstallModal] = useState(false);
 
   // Quick Action triggers
   const [openAddProductTrigger, setOpenAddProductTrigger] = useState(false);
@@ -79,10 +82,13 @@ export const AppContent: React.FC = () => {
         setCurrentTab('MORE');
         break;
       case 14:
+        setShowAndroidInstallModal(true);
+        break;
+      case 15:
         setMoreSubScreen('ADMIN');
         setCurrentTab('MORE');
         break;
-      case 15:
+      case 16:
         setShowResetDemoModal(true);
         break;
       default:
@@ -92,6 +98,15 @@ export const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100/70 text-slate-900 flex flex-col font-sans">
+      {/* 3-Second Ball Bounce & Bloom Splash Screen */}
+      <SplashScreen />
+
+      {/* Android APK / App Install Modal */}
+      <AndroidInstallModal
+        isOpen={showAndroidInstallModal}
+        onClose={() => setShowAndroidInstallModal(false)}
+      />
+
       {/* 3-Step Secure Demo Data Reset Modal */}
       <ResetDemoDataModal
         isOpen={showResetDemoModal}
@@ -139,11 +154,13 @@ export const AppContent: React.FC = () => {
         {/* Top Header Banner (hidden only when printing) */}
         <div className="mb-4 no-print">
           <HeaderBanner
+            showVisitingCard={currentTab === 'HOME'}
             onOpenDrawer={() => setIsDrawerOpen(true)}
             onOpenAdminPanel={() => {
               setMoreSubScreen('ADMIN');
               setCurrentTab('MORE');
             }}
+            onOpenAndroidInstall={() => setShowAndroidInstallModal(true)}
           />
         </div>
 

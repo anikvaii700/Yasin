@@ -1,15 +1,26 @@
-import React, { useRef } from 'react';
-import { Menu, Store } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, Store, Smartphone } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { formatTaka } from '../utils/formatters';
 
 interface HeaderBannerProps {
   onOpenDrawer: () => void;
   onOpenAdminPanel: () => void;
+  onOpenAndroidInstall?: () => void;
+  showVisitingCard?: boolean;
 }
 
-export const HeaderBanner: React.FC<HeaderBannerProps> = ({ onOpenDrawer, onOpenAdminPanel }) => {
+export const HeaderBanner: React.FC<HeaderBannerProps> = ({
+  onOpenDrawer,
+  onOpenAdminPanel,
+  onOpenAndroidInstall,
+  showVisitingCard = true,
+}) => {
   const { sales, expenses, mobileBanking, todayDateStr } = useShop();
+
+  // State for bKash/Nagad style slide-to-reveal cash balance
+  const [isCashRevealed, setIsCashRevealed] = useState(false);
+  const cashTimerRef = useRef<number | null>(null);
 
   // Financial calculations for Today's Cash
   const todaySalesList = sales.filter((s) => s.saleDate === todayDateStr);
@@ -30,7 +41,32 @@ export const HeaderBanner: React.FC<HeaderBannerProps> = ({ onOpenDrawer, onOpen
     todayCashSales + todayCashInMb - todayCashOutMb - todayTotalExpenses
   );
 
-  // Secret 5-Click Admin Trigger on the Visiting Card
+  const handleToggleCashReveal = () => {
+    if (cashTimerRef.current) {
+      window.clearTimeout(cashTimerRef.current);
+      cashTimerRef.current = null;
+    }
+
+    if (!isCashRevealed) {
+      setIsCashRevealed(true);
+      // Auto-hide balance after 4.5 seconds like bKash / Nagad
+      cashTimerRef.current = window.setTimeout(() => {
+        setIsCashRevealed(false);
+      }, 4500);
+    } else {
+      setIsCashRevealed(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (cashTimerRef.current) {
+        window.clearTimeout(cashTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Secret 5-Click Admin Trigger on the Visiting Card / Shop Logo
   // Completely silent with no visual cues or hints
   const clickCountRef = useRef(0);
   const resetTimerRef = useRef<number | null>(null);
@@ -83,41 +119,89 @@ export const HeaderBanner: React.FC<HeaderBannerProps> = ({ onOpenDrawer, onOpen
           </div>
         </div>
 
-        {/* Shop Logo Badge */}
+        {/* Right action badges: Android Install & Shop Logo */}
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-900/40 border border-emerald-400/30">
+          {onOpenAndroidInstall && (
+            <button
+              type="button"
+              onClick={onOpenAndroidInstall}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition active:scale-95 shadow-sm"
+              title="অ্যান্ড্রয়েড ফোনে অ্যাপ / APK ইন্সটল"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">অ্যাপ ইন্সটল</span>
+            </button>
+          )}
+
+          <div
+            onClick={handleCardClick}
+            className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-900/40 border border-emerald-400/30 cursor-pointer active:scale-95 transition"
+            title="ইয়াছিন টেলিকম"
+          >
             <Store className="w-5 h-5 text-white" />
           </div>
         </div>
       </div>
 
-      {/* Official Visiting Card / Business Banner */}
-      {/* Secret trigger: Exactly 5 clicks on this visiting card opens the Admin section */}
-      <div
-        onClick={handleCardClick}
-        className="mt-3.5 relative z-10 cursor-pointer select-none rounded-2xl overflow-hidden shadow-lg border border-white/15 transition-all duration-200 active:scale-[0.99] group bg-slate-900"
-        title="ইয়াছিন টেলিকম"
-      >
-        <img
-          src="/assets/aistudio/Modern_Bengali_Telecom_Store_Banner_23b2899d.png"
-          alt="ইয়াছিন টেলিকম - অফিসিয়াল ভিজিটিং কার্ড ও বিজনেস ব্যানার"
-          className="w-full h-auto object-cover block select-none pointer-events-none rounded-2xl"
-          draggable={false}
-          loading="eager"
-        />
-      </div>
+      {/* Official Visiting Card / Business Banner - shown ONLY when showVisitingCard is true */}
+      {showVisitingCard && (
+        <div
+          onClick={handleCardClick}
+          className="mt-3.5 relative z-10 cursor-pointer select-none rounded-2xl overflow-hidden shadow-lg border border-white/15 transition-all duration-200 active:scale-[0.99] group bg-slate-900"
+          title="ইয়াছিন টেলিকম"
+        >
+          <img
+            src="/assets/aistudio/Modern_Bengali_Telecom_Store_Banner_23b2899d.png"
+            alt="ইয়াছিন টেলিকম - অফিসিয়াল ভিজিটিং কার্ড ও বিজনেস ব্যানার"
+            className="w-full h-auto object-cover block select-none pointer-events-none rounded-2xl"
+            draggable={false}
+            loading="eager"
+          />
+        </div>
+      )}
 
-      {/* Today's Cash Bar (replaces "আজকের তারিখ" directly with "আজকের ক্যাশ") */}
-      <div className="mt-3 bg-white/10 rounded-xl px-3.5 py-2.5 flex items-center justify-between text-xs font-semibold text-slate-200 border border-white/10">
-        <span className="flex items-center gap-2">
-          <span className="text-emerald-400 font-extrabold text-xs sm:text-sm">💵 আজকের ক্যাশ:</span>
-          <strong className="text-white font-black text-sm sm:text-base tracking-tight">
-            {formatTaka(todayEstimatedCash)}
-          </strong>
-        </span>
-        <span className="text-emerald-300 font-black bg-emerald-950/70 px-2.5 py-1 rounded-md text-[11px] border border-emerald-500/40">
-          মুদ্রা: ৳ (BDT)
-        </span>
+      {/* Today's Cash Bar - Centered bKash / Nagad style Slide-to-reveal Cash balance */}
+      <div className="mt-3 bg-slate-900/40 backdrop-blur-xs rounded-2xl py-2 px-3 flex items-center justify-center border border-white/10 shadow-inner">
+        <button
+          type="button"
+          onClick={handleToggleCashReveal}
+          className="group relative flex items-center justify-center gap-2 px-5 py-1.5 rounded-full bg-slate-800/90 hover:bg-slate-800 border border-emerald-500/30 hover:border-emerald-500/60 transition-all duration-300 shadow-md active:scale-95 cursor-pointer max-w-full overflow-hidden select-none"
+          title="ক্যাশ ব্যালেন্স দেখতে ট্যাপ করুন"
+        >
+          {/* Animated ৳ Icon Badge */}
+          <span
+            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black transition-all duration-300 shrink-0 ${
+              isCashRevealed
+                ? 'bg-emerald-500 text-slate-950 scale-105 shadow-sm shadow-emerald-500/50'
+                : 'bg-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500/30'
+            }`}
+          >
+            ৳
+          </span>
+
+          {/* Smooth Sliding Content (bKash/Nagad style) */}
+          <div className="relative overflow-hidden transition-all duration-300">
+            {isCashRevealed ? (
+              <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                <span className="text-emerald-400 font-extrabold text-xs sm:text-sm">
+                  আজকের ক্যাশ:
+                </span>
+                <strong className="text-white font-black text-sm sm:text-base tracking-tight drop-shadow-xs">
+                  {formatTaka(todayEstimatedCash)}
+                </strong>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-4 duration-300">
+                <span className="text-slate-100 font-extrabold text-xs sm:text-sm tracking-wide">
+                  আজকের ক্যাশ
+                </span>
+                <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  ট্যাপ করুন
+                </span>
+              </div>
+            )}
+          </div>
+        </button>
       </div>
     </div>
   );

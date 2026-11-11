@@ -54,10 +54,10 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
     { id: 9, title: 'দোকানের খরচ (Expenses)', icon: <Receipt className="w-5 h-5 text-slate-700" />, tag: 'drawer_expenses' },
     { id: 10, title: 'ক্যাশ মেমো (Cash Memo)', icon: <FileText className="w-5 h-5 text-slate-700" />, tag: 'drawer_cash_memo' },
     { id: 11, title: 'দৈনিক হিসাব ক্লোজিং (Daily Closing)', icon: <CalendarCheck className="w-5 h-5 text-slate-700" />, tag: 'drawer_daily_closing' },
-    { id: 12, title: 'রিপোর্ট ও বিশ্লেষণ (Reports)', icon: <BarChart3 className="w-5 h-5 text-slate-700" />, tag: 'drawer_reports' },
     { id: 13, title: 'সেটিংস ও ব্যাকআপ (Settings)', icon: <Settings className="w-5 h-5 text-slate-700" />, tag: 'drawer_settings' },
-    { id: 14, title: 'অ্যাডমিন প্যানেল (Admin Panel)', icon: <ShieldAlert className="w-5 h-5 text-red-600" />, tag: 'drawer_admin_panel', isSpecial: true },
-    { id: 15, title: 'ডেমো ডাটা রিসেট (Reset Demo Data)', icon: <RotateCcw className="w-5 h-5 text-red-600" />, tag: 'drawer_reset_demo', isSpecial: true },
+    { id: 14, title: 'অ্যান্ড্রয়েড অ্যাপ / APK ইন্সটল', icon: <Smartphone className="w-5 h-5 text-emerald-600" />, tag: 'drawer_install_apk' },
+    { id: 15, title: 'অ্যাডমিন প্যানেল (Admin Panel)', icon: <ShieldAlert className="w-5 h-5 text-red-600" />, tag: 'drawer_admin_panel', isSpecial: true },
+    { id: 16, title: 'ডেমো ডাটা রিসেট (Reset Demo Data)', icon: <RotateCcw className="w-5 h-5 text-red-600" />, tag: 'drawer_reset_demo', isSpecial: true },
   ];
 
   if (!isOpen) return null;

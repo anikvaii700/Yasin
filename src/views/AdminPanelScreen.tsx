@@ -73,6 +73,7 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({ onExitAdmin 
     resetAllData,
     getDemoCounts,
     showMessage,
+    showError,
   } = useShop();
 
   const [enteredPin, setEnteredPin] = useState('');
@@ -105,15 +106,15 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({ onExitAdmin 
   const handleChangePin = (e: React.FormEvent) => {
     e.preventDefault();
     if (currentPinInput !== (profile.adminPin || '1234')) {
-      alert('বর্তমান পিন সঠিক নয়!');
+      showError('বর্তমান পিন সঠিক নয়!');
       return;
     }
     if (newPinInput.length < 4) {
-      alert('নতুন পিন কমপক্ষে ৪ সংখ্যার হতে হবে');
+      showError('নতুন পিন কমপক্ষে ৪ সংখ্যার হতে হবে');
       return;
     }
     if (newPinInput !== confirmPinInput) {
-      alert('নতুন পিন ও কনফার্ম পিন মিলছে না!');
+      showError('নতুন পিন ও কনফার্ম পিন মিলছে না!');
       return;
     }
 
@@ -734,11 +735,16 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({ onExitAdmin 
             <button
               type="button"
               onClick={() => {
-                if (window.confirm('আপনি কি নিশ্চিত যে সম্পূর্ণ ডাটাবেজ রিসেট করতে চান? এই কাজ আর ফেরানো যাবে না!')) {
-                  resetAllData();
-                }
+                setConfirmDeleteModal({
+                  type: 'সম্পূর্ণ ডাটাবেজ',
+                  id: 'all-data',
+                  title: 'সমস্ত পণ্য, স্টক, মেমো, বিক্রয় ও বাকির খাতা মুছে প্রাথমিক অবস্থায় ফিরে যাবে',
+                  onConfirm: () => {
+                    resetAllData();
+                  },
+                });
               }}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow text-xs"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow text-xs cursor-pointer active:scale-95 transition"
             >
               সম্পূর্ণ ডাটা রিসেট করুন
             </button>

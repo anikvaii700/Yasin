@@ -1744,8 +1744,8 @@ const AdminPanelSubScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </p>
             <button
               type="button"
-              onClick={() => resetDemoData()}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow"
+              onClick={() => setShowConfirmResetDemo(true)}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-xl shadow cursor-pointer transition"
             >
               ডেমো রেকর্ড মুছুন
             </button>
@@ -1759,15 +1759,83 @@ const AdminPanelSubScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </p>
             <button
               type="button"
-              onClick={() => {
-                if (window.confirm('আপনি কি নিশ্চিত যে সম্পূর্ণ ডাটা রিসেট করতে চান?')) {
-                  resetAllData();
-                }
-              }}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow"
+              onClick={() => setShowConfirmResetAll(true)}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold rounded-xl shadow cursor-pointer transition"
             >
               সকল ডাটা রিসেট করুন
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Confirmation Modal for Reset All Data */}
+      {showConfirmResetAll && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-slate-900 text-base">
+              সম্পূর্ণ ডাটাবেজ রিসেট নিশ্চিতকরণ
+            </h3>
+            <p className="text-xs text-slate-600 font-medium leading-relaxed">
+              আপনি কি নিশ্চিত যে সম্পূর্ণ ডাটাবেজ রিসেট করতে চান? সমস্ত পণ্য, স্টক, মেমো, বিক্রয় ও বাকির খাতা মুছে প্রাথমিক অবস্থায় ফিরে যাবে। এই কাজ আর পূর্বাবস্থায় ফেরানো যাবে না।
+            </p>
+            <div className="flex items-center justify-center gap-3 pt-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirmResetAll(false)}
+                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  resetAllData();
+                  setShowConfirmResetAll(false);
+                }}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow transition"
+              >
+                হ্যাঁ, সকল ডাটা রিসেট করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Confirmation Modal for Reset Demo Data */}
+      {showConfirmResetDemo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+              <RotateCcw className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-slate-900 text-base">
+              ডেমো ডাটা রিসেট নিশ্চিতকরণ
+            </h3>
+            <p className="text-xs text-slate-600 font-medium leading-relaxed">
+              শুধুমাত্র ইনস্টলেশনের সাথে আসা ডেমো পণ্য ও রেকর্ডগুলো মুছে যাবে। আপনার তৈরি করা আসল ডাটা সম্পূর্ণ অক্ষত থাকবে।
+            </p>
+            <div className="flex items-center justify-center gap-3 pt-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirmResetDemo(false)}
+                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  resetDemoData();
+                  setShowConfirmResetDemo(false);
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow transition"
+              >
+                হ্যাঁ, ডেমো রেকর্ড মুছুন
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -755,21 +755,44 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetAllData = () => {
-    setProducts(INITIAL_PRODUCTS);
-    setSales(INITIAL_SALES);
+    setProducts([]);
+    setSales([]);
     setPurchases([]);
-    setExpenses(INITIAL_EXPENSES);
-    setCustomers(INITIAL_CUSTOMERS);
-    setCustomerTransactions(INITIAL_CUSTOMER_TX);
-    setLoans(INITIAL_LOANS);
-    setMobileBanking(INITIAL_MOBILE_BANKING);
-    setFlexiload(INITIAL_FLEXILOAD);
+    setExpenses([]);
+    setCustomers([]);
+    setCustomerTransactions({});
+    setLoans([]);
+    setMobileBanking([]);
+    setFlexiload([]);
     setDailyClosings([]);
     setCustomCategories([]);
     setStockAdditions([]);
-    setCashMemos(INITIAL_MEMOS);
-    setProfile(INITIAL_PROFILE);
-    showMessage('সকল ডাটা সফলভাবে প্রাথমিক অবস্থায় রিসেট করা হয়েছে');
+    setCashMemos([]);
+    setProfile((prev) => ({
+      ...INITIAL_PROFILE,
+      adminPin: prev.adminPin || '1234',
+      openingCash: 0,
+      cashInDrawer: 0,
+    }));
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_profile`, JSON.stringify({ ...INITIAL_PROFILE, openingCash: 0, cashInDrawer: 0 }));
+      localStorage.setItem(`${STORAGE_KEY}_products`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY}_sales`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY}_purchases`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY}_expenses`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY}_customers`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY}_customer_tx`, JSON.stringify({}));
+      localStorage.setItem(`${STORAGE_KEY}_loans`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY}_mb`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY}_flexi`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY}_closings`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY}_categories`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY}_stock_additions`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY}_memos`, JSON.stringify([]));
+    } catch (e) {
+      console.error('Error saving reset data to localStorage:', e);
+    }
+    showMessage('সকল ডাটা সফলভাবে মুছে খালি (ফাঁকা / ৳০) করা হয়েছে');
   };
 
   // Categories

@@ -6,7 +6,7 @@
   }
 }
 
-/* Custom styles for printing Cash Memo */
+/* Custom styles for printing Cash Memo (Standard Size: 5.5 x 8.5 inches) */
 @media print {
   body {
     background: white !important;
@@ -24,7 +24,21 @@
   }
 
   @page {
-    size: A4 portrait;
-    margin: 10mm;
+    size: 5.5in 8.5in portrait;
+    margin: 4mm;
+  }
+
+  .memo-printable-area {
+    width: 5.5in !important;
+    max-width: 5.5in !important;
+    min-height: 8.3in !important;
+    max-height: 8.5in !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    padding: 16px !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    overflow: hidden !important;
   }
 }
