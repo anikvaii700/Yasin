@@ -502,6 +502,66 @@ interface ShopContextType {
   restoreBackupJson: (jsonString: string) => number;
 }
 
+const DEMO_IDS = new Set([
+  'prod-1', 'prod-2', 'prod-3', 'prod-4', 'prod-5', 'prod-6', 'prod-7',
+  'cust-1', 'cust-2',
+  'loan-1', 'loan-2',
+  'mb-1', 'mb-2',
+  'fl-1', 'fl-2',
+  'sale-1',
+  'memo-1',
+  'exp-1', 'exp-2',
+  'tx-c1-1', 'tx-c1-2', 'tx-c2-1'
+]);
+
+// Helper to retrieve and cleanly sanitize stored data, completely stripping any legacy demo data
+const getStoredCleanList = <T extends { id?: string; isDemo?: boolean }>(key: string): T[] => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // Strictly filter out any demo data items so demo data NEVER appears
+    const cleaned = parsed.filter((item: T) => !item.isDemo && (!item.id || !DEMO_IDS.has(item.id)));
+    if (cleaned.length !== parsed.length) {
+      localStorage.setItem(key, JSON.stringify(cleaned));
+    }
+    return cleaned;
+  } catch {
+    return [];
+  }
+};
+
+const getStoredCleanCustomerTx = (key: string): Record<string, CustomerTransaction[]> => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return {};
+    const result: Record<string, CustomerTransaction[]> = {};
+    let modified = false;
+    for (const [custId, list] of Object.entries(parsed)) {
+      if (Array.isArray(list)) {
+        const cleaned = (list as CustomerTransaction[]).filter(
+          (tx) => !tx.isDemo && !DEMO_IDS.has(tx.id) && !DEMO_IDS.has(tx.customerId)
+        );
+        if (cleaned.length > 0) {
+          result[custId] = cleaned;
+        }
+        if (cleaned.length !== list.length) {
+          modified = true;
+        }
+      }
+    }
+    if (modified) {
+      localStorage.setItem(key, JSON.stringify(result));
+    }
+    return result;
+  } catch {
+    return {};
+  }
+};
+
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -510,70 +570,58 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : INITIAL_PROFILE;
   });
 
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_products`);
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-  });
+  const [products, setProducts] = useState<Product[]>(() =>
+    getStoredCleanList<Product>(`${STORAGE_KEY}_products`)
+  );
 
-  const [sales, setSales] = useState<Sale[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_sales`);
-    return saved ? JSON.parse(saved) : INITIAL_SALES;
-  });
+  const [sales, setSales] = useState<Sale[]>(() =>
+    getStoredCleanList<Sale>(`${STORAGE_KEY}_sales`)
+  );
 
-  const [purchases, setPurchases] = useState<Purchase[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_purchases`);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [purchases, setPurchases] = useState<Purchase[]>(() =>
+    getStoredCleanList<Purchase>(`${STORAGE_KEY}_purchases`)
+  );
 
-  const [expenses, setExpenses] = useState<Expense[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_expenses`);
-    return saved ? JSON.parse(saved) : INITIAL_EXPENSES;
-  });
+  const [expenses, setExpenses] = useState<Expense[]>(() =>
+    getStoredCleanList<Expense>(`${STORAGE_KEY}_expenses`)
+  );
 
-  const [customers, setCustomers] = useState<Customer[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_customers`);
-    return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
-  });
+  const [customers, setCustomers] = useState<Customer[]>(() =>
+    getStoredCleanList<Customer>(`${STORAGE_KEY}_customers`)
+  );
 
-  const [customerTransactions, setCustomerTransactions] = useState<Record<string, CustomerTransaction[]>>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_customer_tx`);
-    return saved ? JSON.parse(saved) : INITIAL_CUSTOMER_TX;
-  });
+  const [customerTransactions, setCustomerTransactions] = useState<Record<string, CustomerTransaction[]>>(() =>
+    getStoredCleanCustomerTx(`${STORAGE_KEY}_customer_tx`)
+  );
 
-  const [loans, setLoans] = useState<Loan[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_loans`);
-    return saved ? JSON.parse(saved) : INITIAL_LOANS;
-  });
+  const [loans, setLoans] = useState<Loan[]>(() =>
+    getStoredCleanList<Loan>(`${STORAGE_KEY}_loans`)
+  );
 
-  const [mobileBanking, setMobileBanking] = useState<MobileBankingTx[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_mb`);
-    return saved ? JSON.parse(saved) : INITIAL_MOBILE_BANKING;
-  });
+  const [mobileBanking, setMobileBanking] = useState<MobileBankingTx[]>(() =>
+    getStoredCleanList<MobileBankingTx>(`${STORAGE_KEY}_mb`)
+  );
 
-  const [flexiload, setFlexiload] = useState<FlexiloadTx[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_flexi`);
-    return saved ? JSON.parse(saved) : INITIAL_FLEXILOAD;
-  });
+  const [flexiload, setFlexiload] = useState<FlexiloadTx[]>(() =>
+    getStoredCleanList<FlexiloadTx>(`${STORAGE_KEY}_flexi`)
+  );
 
-  const [dailyClosings, setDailyClosings] = useState<DailyClosing[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_closings`);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [dailyClosings, setDailyClosings] = useState<DailyClosing[]>(() =>
+    getStoredCleanList<DailyClosing>(`${STORAGE_KEY}_closings`)
+  );
 
   const [customCategories, setCustomCategories] = useState<CustomCategory[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_categories`);
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [stockAdditions, setStockAdditions] = useState<StockAddition[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_stock_additions`);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [stockAdditions, setStockAdditions] = useState<StockAddition[]>(() =>
+    getStoredCleanList<StockAddition>(`${STORAGE_KEY}_stock_additions`)
+  );
 
-  const [cashMemos, setCashMemos] = useState<CashMemo[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_memos`);
-    return saved ? JSON.parse(saved) : INITIAL_MEMOS;
-  });
+  const [cashMemos, setCashMemos] = useState<CashMemo[]>(() =>
+    getStoredCleanList<CashMemo>(`${STORAGE_KEY}_memos`)
+  );
 
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
   const [message, setMessage] = useState<string | null>(null);
