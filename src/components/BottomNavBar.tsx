@@ -26,8 +26,8 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentTab, onChange
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200/90 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] no-print">
-      <div className="max-w-md md:max-w-xl mx-auto flex items-center justify-around px-2 py-1.5 safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.07)] no-print select-none">
+      <div className="max-w-md md:max-w-xl mx-auto flex items-center justify-around px-1 sm:px-2 py-1 safe-area-bottom">
         {tabs.map((tab) => {
           const isSelected = currentTab === tab.key;
           const IconComponent = tab.icon;
@@ -38,26 +38,26 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentTab, onChange
               type="button"
               data-testid={tab.tag}
               onClick={() => onChangeTab(tab.key)}
-              className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 px-0.5 rounded-xl transition-all duration-200 active:scale-90 cursor-pointer min-h-[48px] ${
                 isSelected
                   ? tab.highlight
                     ? 'text-orange-600 font-bold'
                     : 'text-[#0A2540] font-bold'
-                  : 'text-slate-500 hover:text-slate-700 font-normal'
+                  : 'text-slate-500 hover:text-slate-700 font-medium'
               }`}
             >
               <div
-                className={`flex items-center justify-center w-9 h-7 rounded-full transition ${
+                className={`flex items-center justify-center w-8 sm:w-9 h-7 rounded-full transition-all duration-200 ${
                   isSelected
                     ? tab.highlight
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-emerald-600 text-white'
+                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30 scale-105'
+                      : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 scale-105'
                     : 'text-slate-600'
                 }`}
               >
                 <IconComponent className="w-4 h-4" />
               </div>
-              <span className="text-[11px] mt-0.5 tracking-tight">{tab.label}</span>
+              <span className="text-[10px] sm:text-[11px] mt-0.5 tracking-tight">{tab.label}</span>
             </button>
           );
         })}

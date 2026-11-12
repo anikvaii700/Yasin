@@ -160,24 +160,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
           {/* Card 1: Today's Sales */}
           <div
             onClick={onNavigateToSales}
             data-testid="card_today_sales"
-            className="group cursor-pointer rounded-2xl p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-800 relative overflow-hidden border border-white/10"
+            className="group cursor-pointer rounded-2xl p-3 sm:p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-800 relative overflow-hidden border border-white/10"
           >
             <div className="absolute -right-3 -bottom-3 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative z-10">
-              <span className="text-[11px] font-bold text-blue-100 uppercase tracking-wider">Today's Sales</span>
-              <div className="p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
-                <Banknote className="w-4 h-4 text-white" />
+              <span className="text-[10px] sm:text-[11px] font-bold text-blue-100 uppercase tracking-wider">Today's Sales</span>
+              <div className="p-1 sm:p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
+                <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-black mt-2 tracking-tight text-white relative z-10">
+            <p className="text-base sm:text-xl font-black mt-1.5 sm:mt-2 tracking-tight text-white relative z-10">
               {formatTaka(todayTotalSales)}
             </p>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-blue-100/90 relative z-10">
+            <div className="flex items-center justify-between mt-1 text-[10px] sm:text-[11px] text-blue-100/90 relative z-10">
               <span>আজকের বিক্রয়</span>
               <span className="bg-white/20 px-1.5 py-0.2 rounded font-bold">{todaySalesList.length} টি</span>
             </div>
@@ -187,19 +187,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div
             onClick={onNavigateToSales}
             data-testid="card_today_profit"
-            className="group cursor-pointer rounded-2xl p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 relative overflow-hidden border border-white/10"
+            className="group cursor-pointer rounded-2xl p-3 sm:p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 relative overflow-hidden border border-white/10"
           >
             <div className="absolute -right-3 -bottom-3 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative z-10">
-              <span className="text-[11px] font-bold text-emerald-100 uppercase tracking-wider">Today's Profit</span>
-              <div className="p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
-                <TrendingUp className="w-4 h-4 text-white" />
+              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-100 uppercase tracking-wider">Today's Profit</span>
+              <div className="p-1 sm:p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
+                <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-black mt-2 tracking-tight text-white relative z-10">
+            <p className="text-base sm:text-xl font-black mt-1.5 sm:mt-2 tracking-tight text-white relative z-10">
               {formatTaka(todayGrossProfit)}
             </p>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-emerald-100/90 relative z-10">
+            <div className="flex items-center justify-between mt-1 text-[10px] sm:text-[11px] text-emerald-100/90 relative z-10">
               <span>আজকের মোট লাভ</span>
               <span className="bg-white/20 px-1.5 py-0.2 rounded font-bold">
                 {todayTotalExpenses > 0 ? `নিট ${formatTaka(todayNetProfit)}` : 'গ্রস'}
@@ -211,21 +211,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div
             onClick={onNavigateToProducts}
             data-testid="card_total_products"
-            className="group cursor-pointer rounded-2xl p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-purple-600 via-violet-600 to-purple-800 relative overflow-hidden border border-white/10"
+            className="group cursor-pointer rounded-2xl p-3 sm:p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-purple-600 via-violet-600 to-purple-800 relative overflow-hidden border border-white/10"
           >
             <div className="absolute -right-3 -bottom-3 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative z-10">
-              <span className="text-[11px] font-bold text-purple-100 uppercase tracking-wider">Total Products</span>
-              <div className="p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
-                <Package className="w-4 h-4 text-white" />
+              <span className="text-[10px] sm:text-[11px] font-bold text-purple-100 uppercase tracking-wider">Total Products</span>
+              <div className="p-1 sm:p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
+                <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-black mt-2 tracking-tight text-white relative z-10">
+            <p className="text-base sm:text-xl font-black mt-1.5 sm:mt-2 tracking-tight text-white relative z-10">
               {totalProductsCount} টি
             </p>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-purple-100/90 relative z-10">
+            <div className="flex items-center justify-between mt-1 text-[10px] sm:text-[11px] text-purple-100/90 relative z-10">
               <span>মোট পণ্য</span>
-              <span className="truncate max-w-[100px]">ক্রয়: {formatTaka(totalStockValue)}</span>
+              <span className="truncate max-w-[90px] sm:max-w-[120px]">ক্রয়: {formatTaka(totalStockValue)}</span>
             </div>
           </div>
 
@@ -233,21 +233,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div
             onClick={onNavigateToProducts}
             data-testid="card_available_stock"
-            className="group cursor-pointer rounded-2xl p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-cyan-600 via-teal-600 to-sky-700 relative overflow-hidden border border-white/10"
+            className="group cursor-pointer rounded-2xl p-3 sm:p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-cyan-600 via-teal-600 to-sky-700 relative overflow-hidden border border-white/10"
           >
             <div className="absolute -right-3 -bottom-3 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative z-10">
-              <span className="text-[11px] font-bold text-cyan-100 uppercase tracking-wider">Available Stock</span>
-              <div className="p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
-                <Boxes className="w-4 h-4 text-white" />
+              <span className="text-[10px] sm:text-[11px] font-bold text-cyan-100 uppercase tracking-wider">Available Stock</span>
+              <div className="p-1 sm:p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
+                <Boxes className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-black mt-2 tracking-tight text-white relative z-10">
+            <p className="text-base sm:text-xl font-black mt-1.5 sm:mt-2 tracking-tight text-white relative z-10">
               {availableStockQuantity} পিস
             </p>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-cyan-100/90 relative z-10">
-              <span>চলতি মজুদ স্টক</span>
-              <span>সম্ভাব্য: {formatTaka(totalPotentialValue)}</span>
+            <div className="flex items-center justify-between mt-1 text-[10px] sm:text-[11px] text-cyan-100/90 relative z-10">
+              <span>চলতি স্টক</span>
+              <span className="truncate max-w-[90px] sm:max-w-[120px]">{formatTaka(totalPotentialValue)}</span>
             </div>
           </div>
 
@@ -255,19 +255,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div
             onClick={onNavigateToProducts}
             data-testid="card_low_stock"
-            className="group cursor-pointer rounded-2xl p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-amber-500 via-orange-500 to-rose-600 relative overflow-hidden border border-white/10"
+            className="group cursor-pointer rounded-2xl p-3 sm:p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-amber-500 via-orange-500 to-rose-600 relative overflow-hidden border border-white/10"
           >
             <div className="absolute -right-3 -bottom-3 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative z-10">
-              <span className="text-[11px] font-bold text-amber-100 uppercase tracking-wider">Low Stock</span>
-              <div className="p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
-                <AlertTriangle className="w-4 h-4 text-white" />
+              <span className="text-[10px] sm:text-[11px] font-bold text-amber-100 uppercase tracking-wider">Low Stock</span>
+              <div className="p-1 sm:p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
+                <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-black mt-2 tracking-tight text-white relative z-10">
+            <p className="text-base sm:text-xl font-black mt-1.5 sm:mt-2 tracking-tight text-white relative z-10">
               {lowStockList.length} টি
             </p>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-amber-100/90 relative z-10">
+            <div className="flex items-center justify-between mt-1 text-[10px] sm:text-[11px] text-amber-100/90 relative z-10">
               <span>কম স্টক সতর্কতা</span>
               <span className="bg-white/20 px-1.5 py-0.2 rounded font-bold">
                 {outOfStockList.length > 0 ? `শেষ: ${outOfStockList.length}` : 'রি-অর্ডার'}
@@ -279,20 +279,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div
             onClick={onNavigateToDue}
             data-testid="card_customer_due"
-            className="group cursor-pointer rounded-2xl p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-rose-500 via-red-600 to-pink-700 relative overflow-hidden border border-white/10"
+            className="group cursor-pointer rounded-2xl p-3 sm:p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-rose-500 via-red-600 to-pink-700 relative overflow-hidden border border-white/10"
           >
             <div className="absolute -right-3 -bottom-3 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative z-10">
-              <span className="text-[11px] font-bold text-rose-100 uppercase tracking-wider">Customer Due</span>
-              <div className="p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
-                <Wallet className="w-4 h-4 text-white" />
+              <span className="text-[10px] sm:text-[11px] font-bold text-rose-100 uppercase tracking-wider">Customer Due</span>
+              <div className="p-1 sm:p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
+                <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-black mt-2 tracking-tight text-white relative z-10">
+            <p className="text-base sm:text-xl font-black mt-1.5 sm:mt-2 tracking-tight text-white relative z-10">
               {formatTaka(totalCustomerDue)}
             </p>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-rose-100/90 relative z-10">
-              <span>গ্রাহক বাকি (বাকি খাতা)</span>
+            <div className="flex items-center justify-between mt-1 text-[10px] sm:text-[11px] text-rose-100/90 relative z-10">
+              <span>গ্রাহক বাকি</span>
               <span className="bg-white/20 px-1.5 py-0.2 rounded font-bold">
                 {customers.filter((c) => c.remainingDue > 0).length} জন
               </span>
@@ -303,20 +303,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div
             onClick={onNavigateToExpenses}
             data-testid="card_total_expenses"
-            className="group cursor-pointer rounded-2xl p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-fuchsia-600 via-pink-600 to-purple-800 relative overflow-hidden border border-white/10"
+            className="group cursor-pointer rounded-2xl p-3 sm:p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-fuchsia-600 via-pink-600 to-purple-800 relative overflow-hidden border border-white/10"
           >
             <div className="absolute -right-3 -bottom-3 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative z-10">
-              <span className="text-[11px] font-bold text-fuchsia-100 uppercase tracking-wider">Total Expenses</span>
-              <div className="p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
-                <Receipt className="w-4 h-4 text-white" />
+              <span className="text-[10px] sm:text-[11px] font-bold text-fuchsia-100 uppercase tracking-wider">Total Expenses</span>
+              <div className="p-1 sm:p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
+                <Receipt className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-black mt-2 tracking-tight text-white relative z-10">
+            <p className="text-base sm:text-xl font-black mt-1.5 sm:mt-2 tracking-tight text-white relative z-10">
               {formatTaka(todayTotalExpenses)}
             </p>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-fuchsia-100/90 relative z-10">
-              <span>মোট খরচ (আজকে)</span>
+            <div className="flex items-center justify-between mt-1 text-[10px] sm:text-[11px] text-fuchsia-100/90 relative z-10">
+              <span>আজকের খরচ</span>
               <span className="bg-white/20 px-1.5 py-0.2 rounded font-bold">{todayExpensesList.length} টি</span>
             </div>
           </div>
@@ -325,20 +325,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div
             onClick={onNavigateToMobileBanking}
             data-testid="card_cash_balance"
-            className="group cursor-pointer rounded-2xl p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-teal-600 via-emerald-600 to-cyan-800 relative overflow-hidden border border-white/10"
+            className="group cursor-pointer rounded-2xl p-3 sm:p-4 text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg active:scale-98 bg-gradient-to-br from-teal-600 via-emerald-600 to-cyan-800 relative overflow-hidden border border-white/10"
           >
             <div className="absolute -right-3 -bottom-3 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative z-10">
-              <span className="text-[11px] font-bold text-teal-100 uppercase tracking-wider">Cash Balance</span>
-              <div className="p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
-                <DollarSign className="w-4 h-4 text-white" />
+              <span className="text-[10px] sm:text-[11px] font-bold text-teal-100 uppercase tracking-wider">Cash Balance</span>
+              <div className="p-1 sm:p-1.5 rounded-xl bg-white/20 backdrop-blur-xs">
+                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-black mt-2 tracking-tight text-white relative z-10">
+            <p className="text-base sm:text-xl font-black mt-1.5 sm:mt-2 tracking-tight text-white relative z-10">
               {formatTaka(todayEstimatedCash)}
             </p>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-teal-100/90 relative z-10">
-              <span>ক্যাশ ব্যালেন্স (হাতে নগদ)</span>
+            <div className="flex items-center justify-between mt-1 text-[10px] sm:text-[11px] text-teal-100/90 relative z-10">
+              <span>হাতে নগদ</span>
               <span className="bg-white/20 px-1.5 py-0.2 rounded font-bold">আজকের ক্যাশ</span>
             </div>
           </div>
@@ -654,65 +654,65 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <h2 className="text-sm font-extrabold text-slate-800 tracking-wide uppercase mb-3">
           দ্রুত কার্যক্রম (Quick Actions)
         </h2>
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
           <button
             type="button"
             data-testid="quick_cash_memo"
             onClick={onNavigateToCashMemo}
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 active:scale-95 text-white shadow-md transition"
+            className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 active:scale-95 text-white shadow-md transition cursor-pointer"
           >
-            <FileText className="w-6 h-6 mb-1.5" />
-            <span className="text-xs font-bold">ক্যাশ মেমো</span>
+            <FileText className="w-5 h-5 sm:w-6 sm:h-6 mb-1 sm:mb-1.5" />
+            <span className="text-[11px] sm:text-xs font-bold text-center">ক্যাশ মেমো</span>
           </button>
 
           <button
             type="button"
             data-testid="quick_add_product"
             onClick={onOpenAddProductDialog}
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-95 text-white shadow-md transition"
+            className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-95 text-white shadow-md transition cursor-pointer"
           >
-            <PlusCircle className="w-6 h-6 mb-1.5" />
-            <span className="text-xs font-bold">পণ্য যোগ</span>
+            <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6 mb-1 sm:mb-1.5" />
+            <span className="text-[11px] sm:text-xs font-bold text-center">পণ্য যোগ</span>
           </button>
 
           <button
             type="button"
             data-testid="quick_record_sale"
             onClick={onOpenRecordSaleDialog}
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-blue-700 to-indigo-800 hover:from-blue-800 hover:to-indigo-900 active:scale-95 text-white shadow-md transition"
+            className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-blue-700 to-indigo-800 hover:from-blue-800 hover:to-indigo-900 active:scale-95 text-white shadow-md transition cursor-pointer"
           >
-            <ShoppingCart className="w-6 h-6 mb-1.5" />
-            <span className="text-xs font-bold">বিক্রয় রেকর্ড</span>
+            <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 mb-1 sm:mb-1.5" />
+            <span className="text-[11px] sm:text-xs font-bold text-center">বিক্রয় রেকর্ড</span>
           </button>
 
           <button
             type="button"
             data-testid="quick_add_purchase"
             onClick={onOpenAddPurchaseDialog}
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 active:scale-95 text-white shadow-md transition"
+            className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 active:scale-95 text-white shadow-md transition cursor-pointer"
           >
-            <ShoppingBag className="w-6 h-6 mb-1.5" />
-            <span className="text-xs font-bold">ক্রয় যোগ</span>
+            <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 mb-1 sm:mb-1.5" />
+            <span className="text-[11px] sm:text-xs font-bold text-center">ক্রয় যোগ</span>
           </button>
 
           <button
             type="button"
             data-testid="quick_add_expense"
             onClick={onOpenAddExpenseDialog}
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-rose-600 to-pink-700 hover:from-rose-700 hover:to-pink-800 active:scale-95 text-white shadow-md transition"
+            className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-rose-600 to-pink-700 hover:from-rose-700 hover:to-pink-800 active:scale-95 text-white shadow-md transition cursor-pointer"
           >
-            <Receipt className="w-6 h-6 mb-1.5" />
-            <span className="text-xs font-bold">খরচ যোগ</span>
+            <Receipt className="w-5 h-5 sm:w-6 sm:h-6 mb-1 sm:mb-1.5" />
+            <span className="text-[11px] sm:text-xs font-bold text-center">খরচ যোগ</span>
           </button>
 
           <button
             type="button"
             data-testid="quick_add_due"
             onClick={onOpenAddDueDialog}
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-sky-600 to-cyan-700 hover:from-sky-700 hover:to-cyan-800 active:scale-95 text-white shadow-md transition"
+            className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-sky-600 to-cyan-700 hover:from-sky-700 hover:to-cyan-800 active:scale-95 text-white shadow-md transition cursor-pointer"
           >
-            <Wallet className="w-6 h-6 mb-1.5" />
-            <span className="text-xs font-bold">বাকি এন্ট্রি</span>
+            <Wallet className="w-5 h-5 sm:w-6 sm:h-6 mb-1 sm:mb-1.5" />
+            <span className="text-[11px] sm:text-xs font-bold text-center">বাকি এন্ট্রি</span>
           </button>
         </div>
       </section>

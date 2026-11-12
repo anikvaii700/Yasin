@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, Store, Smartphone } from 'lucide-react';
+import { Menu, Store } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { formatTaka } from '../utils/formatters';
 
@@ -119,20 +119,8 @@ export const HeaderBanner: React.FC<HeaderBannerProps> = ({
           </div>
         </div>
 
-        {/* Right action badges: Android Install & Shop Logo */}
+        {/* Right action: Shop Logo */}
         <div className="flex items-center gap-2">
-          {onOpenAndroidInstall && (
-            <button
-              type="button"
-              onClick={onOpenAndroidInstall}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition active:scale-95 shadow-sm"
-              title="অ্যান্ড্রয়েড ফোনে অ্যাপ / APK ইন্সটল"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">অ্যাপ ইন্সটল</span>
-            </button>
-          )}
-
           <div
             onClick={handleCardClick}
             className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-900/40 border border-emerald-400/30 cursor-pointer active:scale-95 transition"

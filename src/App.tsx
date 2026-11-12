@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useShop } from './context/ShopContext';
 import { HeaderBanner } from './components/HeaderBanner';
 import { NavigationDrawer } from './components/NavigationDrawer';
@@ -12,15 +12,25 @@ import { MoreScreen, MoreSubScreenType } from './views/MoreScreen';
 import { ResetDemoDataModal } from './components/ResetDemoDataModal';
 import { SplashScreen } from './components/SplashScreen';
 import { AndroidInstallModal } from './components/AndroidInstallModal';
-import { CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, X, LogOut } from 'lucide-react';
 
 export const AppContent: React.FC = () => {
-  const { message, errorMessage, clearMessage } = useShop();
+  const { message, errorMessage, clearMessage, showMessage } = useShop();
 
   const [currentTab, setCurrentTab] = useState<MainTabType>('HOME');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showResetDemoModal, setShowResetDemoModal] = useState(false);
   const [showAndroidInstallModal, setShowAndroidInstallModal] = useState(false);
+  const [showExitConfirmDialog, setShowExitConfirmDialog] = useState(false);
+
+  // Splash Screen: Shows strictly ONCE when the app is freshly opened
+  const [showSplash, setShowSplash] = useState(() => {
+    try {
+      return sessionStorage.getItem('yasin_telecom_splash_shown') !== 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // Quick Action triggers
   const [openAddProductTrigger, setOpenAddProductTrigger] = useState(false);
@@ -31,6 +41,117 @@ export const AppContent: React.FC = () => {
 
   // Sub-screen preference for More tab
   const [moreSubScreen, setMoreSubScreen] = useState<MoreSubScreenType>('MENU');
+
+  // References to keep event listeners synced without stale closures
+  const currentTabRef = useRef(currentTab);
+  currentTabRef.current = currentTab;
+
+  const moreSubScreenRef = useRef(moreSubScreen);
+  moreSubScreenRef.current = moreSubScreen;
+
+  const isDrawerOpenRef = useRef(isDrawerOpen);
+  isDrawerOpenRef.current = isDrawerOpen;
+
+  const showResetDemoModalRef = useRef(showResetDemoModal);
+  showResetDemoModalRef.current = showResetDemoModal;
+
+  const showAndroidInstallModalRef = useRef(showAndroidInstallModal);
+  showAndroidInstallModalRef.current = showAndroidInstallModal;
+
+  const showExitConfirmDialogRef = useRef(showExitConfirmDialog);
+  showExitConfirmDialogRef.current = showExitConfirmDialog;
+
+  const lastBackPressTimeRef = useRef<number>(0);
+  const allowExitRef = useRef<boolean>(false);
+
+  // Prevent direct exit: Trap history back button & handle double-press on Home
+  useEffect(() => {
+    // Push initial history state so the phone's back button can be intercepted
+    window.history.pushState({ app: 'yasin-telecom' }, '', window.location.href);
+
+    const handlePopState = () => {
+      if (allowExitRef.current) {
+        return;
+      }
+
+      // Re-push state immediately to preserve the back trap
+      window.history.pushState({ app: 'yasin-telecom' }, '', window.location.href);
+
+      // 1. If Exit dialog is currently open, close it
+      if (showExitConfirmDialogRef.current) {
+        setShowExitConfirmDialog(false);
+        return;
+      }
+
+      // 2. If Android install modal is open, close it
+      if (showAndroidInstallModalRef.current) {
+        setShowAndroidInstallModal(false);
+        return;
+      }
+
+      // 3. If Reset demo modal is open, close it
+      if (showResetDemoModalRef.current) {
+        setShowResetDemoModal(false);
+        return;
+      }
+
+      // 4. If Navigation drawer is open, close it
+      if (isDrawerOpenRef.current) {
+        setIsDrawerOpen(false);
+        return;
+      }
+
+      // 5. If on MORE sub-screen other than MENU, return to MORE MENU
+      if (currentTabRef.current === 'MORE' && moreSubScreenRef.current !== 'MENU') {
+        setMoreSubScreen('MENU');
+        return;
+      }
+
+      // 6. If on any other tab than HOME, return to HOME
+      if (currentTabRef.current !== 'HOME') {
+        setCurrentTab('HOME');
+        return;
+      }
+
+      // 7. On HOME screen: Check if pressed twice within 2.2 seconds
+      const now = Date.now();
+      const timeSinceLastPress = now - lastBackPressTimeRef.current;
+
+      if (timeSinceLastPress < 2200) {
+        // Double press detected! Open confirmation dialog
+        lastBackPressTimeRef.current = 0;
+        setShowExitConfirmDialog(true);
+      } else {
+        // First press: record timestamp and display friendly hint
+        lastBackPressTimeRef.current = now;
+        showMessage('অ্যাপ থেকে বের হতে আবারও ব্যাক বাটন চাপুন');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [showMessage]);
+
+  const handleConfirmExit = () => {
+    setShowExitConfirmDialog(false);
+    allowExitRef.current = true;
+    // Attempt closing window (supported in WebAPK / standalone PWA)
+    try {
+      window.close();
+    } catch {
+      // ignore
+    }
+    // Fallback: history back
+    setTimeout(() => {
+      try {
+        window.history.back();
+      } catch {
+        // ignore
+      }
+    }, 150);
+  };
 
   const handleSelectDrawerItem = (id: number) => {
     switch (id) {
@@ -98,8 +219,10 @@ export const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100/70 text-slate-900 flex flex-col font-sans">
-      {/* 3-Second Ball Bounce & Bloom Splash Screen */}
-      <SplashScreen />
+      {/* 3-Second Ball Bounce & Bloom Splash Screen (Shows strictly once per session) */}
+      {showSplash && (
+        <SplashScreen onFinish={() => setShowSplash(false)} />
+      )}
 
       {/* Android APK / App Install Modal */}
       <AndroidInstallModal
@@ -112,6 +235,48 @@ export const AppContent: React.FC = () => {
         isOpen={showResetDemoModal}
         onClose={() => setShowResetDemoModal(false)}
       />
+
+      {/* Exit Confirmation Dialog (when pressing back twice on HOME) */}
+      {showExitConfirmDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setShowExitConfirmDialog(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden p-6 text-center animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 border-2 border-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4 shadow-sm">
+              <LogOut className="w-8 h-8 ml-0.5" />
+            </div>
+
+            <h3 className="text-xl font-bold text-slate-800 mb-1.5">
+              আপনি কি অ্যাপ থেকে বের হতে চান?
+            </h3>
+            <p className="text-xs text-slate-500 mb-6 font-medium leading-relaxed">
+              ইয়াছিন টেলিকম স্মার্ট শপ ম্যানেজার
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setShowExitConfirmDialog(false)}
+                className="w-full py-3 px-4 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all text-sm cursor-pointer shadow-sm"
+              >
+                না, থাকুন
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmExit}
+                className="w-full py-3 px-4 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all shadow-md shadow-red-200 text-sm flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>হ্যাঁ, বের হন</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast notifications */}
       {(message || errorMessage) && (
@@ -150,9 +315,9 @@ export const AppContent: React.FC = () => {
       />
 
       {/* Main Container */}
-      <div className="w-full max-w-2xl mx-auto flex-1 flex flex-col px-3 sm:px-4 pt-3 sm:pt-4">
+      <div className="w-full max-w-2xl mx-auto flex-1 flex flex-col px-2.5 sm:px-4 pt-2.5 sm:pt-4">
         {/* Top Header Banner (hidden only when printing) */}
-        <div className="mb-4 no-print">
+        <div className="mb-3 sm:mb-4 no-print">
           <HeaderBanner
             showVisitingCard={currentTab === 'HOME'}
             onOpenDrawer={() => setIsDrawerOpen(true)}

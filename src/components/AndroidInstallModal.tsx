@@ -13,7 +13,20 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({ isOpen
 
   if (!isOpen) return null;
 
-  const currentAppUrl = window.location.origin;
+  // Direct Shared Public App URL so scanning QR code opens the live app on any phone
+  const SHARED_APP_URL = 'https://ais-pre-dhmo3cdpayzagb277suixi-495130326197.asia-southeast1.run.app';
+
+  const currentAppUrl = (() => {
+    try {
+      const origin = window.location.origin;
+      if (origin && origin.includes('.run.app') && !origin.includes('aistudio.google.com')) {
+        return origin;
+      }
+    } catch {
+      // fallback
+    }
+    return SHARED_APP_URL;
+  })();
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(currentAppUrl);
@@ -35,7 +48,7 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({ isOpen
                 অ্যান্ড্রয়েড ফোনে অ্যাপ ইন্সটল
               </h3>
               <p className="text-xs text-emerald-200">
-                APK / সরাসরি অ্যান্ড্রয়েড অ্যাপ হিসেবে চালান
+                সরাসরি মোবাইল অ্যাপ হিসেবে চালান
               </p>
             </div>
           </div>
@@ -73,38 +86,68 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({ isOpen
           )}
 
           {/* Option 1: Direct 1-Click Install Button (Android WebAPK) */}
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-extrabold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
                 <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">১</span>
-                ১-ক্লিক ডিরেক্ট ইন্সটল (সরাসরি ফোনে):
+                মোবাইলে খুলতে লিংক বা কিউআর কোড:
               </span>
               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                সবচেয়ে দ্রুত
+                সরাসরি লিংক
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={async () => {
-                if (isInstallable) {
+            {/* Direct Link Field with Copy */}
+            <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-slate-200">
+              <input
+                type="text"
+                readOnly
+                value={currentAppUrl}
+                className="flex-1 bg-transparent text-[11px] font-mono text-slate-700 px-2 py-1 outline-none truncate select-all"
+              />
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs flex items-center gap-1 shrink-0 transition"
+              >
+                {copiedLink ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+                <span>{copiedLink ? 'কপি হয়েছে!' : 'কপি করুন'}</span>
+              </button>
+            </div>
+
+            {/* Instant QR Code for Phone Scanning */}
+            <div className="pt-1 text-center bg-white p-3 rounded-xl border border-slate-200">
+              <p className="font-bold text-slate-800 text-xs mb-2">
+                📱 মোবাইল ক্যামেরা দিয়ে স্ক্যান করে ফোনে খুলুন:
+              </p>
+              <div className="w-40 h-40 mx-auto bg-slate-50 p-2 rounded-xl border border-slate-200 shadow-inner flex items-center justify-center">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=6&data=${encodeURIComponent(
+                    currentAppUrl
+                  )}`}
+                  alt="মোবাইলে খোলার QR কোড"
+                  className="w-36 h-36 block rounded-lg"
+                  loading="eager"
+                />
+              </div>
+              <p className="text-[10px] text-emerald-700 font-semibold mt-2">
+                ক্যামেরা অন করে কিউআর কোডটি ধরলেই সরাসরি অ্যাপটি খুলে যাবে
+              </p>
+            </div>
+
+            {isInstallable && (
+              <button
+                type="button"
+                onClick={async () => {
                   const success = await install();
                   if (success) onClose();
-                } else {
-                  alert(
-                    'আপনার ক্রোম ব্রাউজারের উপরে ৩-ডট (⋮) মেনুতে চাপ দিয়ে "Install app" বা "Add to Home screen"-এ ক্লিক করুন।'
-                  );
-                }
-              }}
-              className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm cursor-pointer active:scale-98"
-            >
-              <Download className="w-4 h-4" />
-              <span>{isInstallable ? 'ফোনে এখনই ইন্সটল করুন' : 'হোম স্ক্রিন অ্যাপ হিসেবে যোগ করুন'}</span>
-            </button>
-
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              👉 অ্যান্ড্রয়েড ক্রোম ব্রাউজার স্বয়ংক্রিয়ভাবে এটিকে অফিশিয়াল <strong>WebAPK</strong> হিসেবে ফোনের অ্যাপ ড্রয়ারে ইনস্টল করে নেয়।
-            </p>
+                }}
+                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm cursor-pointer active:scale-98"
+              >
+                <Download className="w-4 h-4" />
+                <span>ফোনে এখনই ইন্সটল করুন</span>
+              </button>
+            )}
           </div>
 
           {/* Option 2: Manual Chrome Steps for Android */}

@@ -13,8 +13,6 @@ import {
   CalendarCheck,
   BarChart3,
   Settings,
-  ShieldAlert,
-  RotateCcw,
   X,
   Store,
 } from 'lucide-react';
@@ -56,8 +54,6 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
     { id: 11, title: 'দৈনিক হিসাব ক্লোজিং (Daily Closing)', icon: <CalendarCheck className="w-5 h-5 text-slate-700" />, tag: 'drawer_daily_closing' },
     { id: 13, title: 'সেটিংস ও ব্যাকআপ (Settings)', icon: <Settings className="w-5 h-5 text-slate-700" />, tag: 'drawer_settings' },
     { id: 14, title: 'অ্যান্ড্রয়েড অ্যাপ / APK ইন্সটল', icon: <Smartphone className="w-5 h-5 text-emerald-600" />, tag: 'drawer_install_apk' },
-    { id: 15, title: 'অ্যাডমিন প্যানেল (Admin Panel)', icon: <ShieldAlert className="w-5 h-5 text-red-600" />, tag: 'drawer_admin_panel', isSpecial: true },
-    { id: 16, title: 'ডেমো ডাটা রিসেট (Reset Demo Data)', icon: <RotateCcw className="w-5 h-5 text-red-600" />, tag: 'drawer_reset_demo', isSpecial: true },
   ];
 
   if (!isOpen) return null;
