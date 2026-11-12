@@ -13,8 +13,8 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({ isOpen
 
   if (!isOpen) return null;
 
-  // Direct Shared Public App URL so scanning QR code opens the live app on any phone
-  const SHARED_APP_URL = 'https://ais-pre-dhmo3cdpayzagb277suixi-495130326197.asia-southeast1.run.app';
+  // Current live active Development App URL
+  const LIVE_DEV_URL = 'https://ais-dev-w6kp5d7vanc6fqya3hrxlg-704519896893.asia-northeast1.run.app';
 
   const currentAppUrl = (() => {
     try {
@@ -25,7 +25,7 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({ isOpen
     } catch {
       // fallback
     }
-    return SHARED_APP_URL;
+    return LIVE_DEV_URL;
   })();
 
   const handleCopyLink = () => {
@@ -40,8 +40,12 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({ isOpen
         {/* Header */}
         <div className="bg-gradient-to-r from-emerald-600 via-teal-700 to-slate-900 text-white p-4 sm:p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shadow-inner">
-              <Smartphone className="w-6 h-6 text-emerald-300" />
+            <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-inner ring-2 ring-emerald-300/40 bg-white flex items-center justify-center shrink-0">
+              <img
+                src="/assets/aistudio/Yasin_Telecom_Circular_Badge_a7e3e780.png"
+                alt="Yasin Telecom"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <h3 className="font-extrabold text-base sm:text-lg tracking-tight">
@@ -154,42 +158,62 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({ isOpen
           <div className="bg-white p-3.5 rounded-2xl border border-slate-200 space-y-2">
             <h4 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px]">২</span>
-              অ্যান্ড্রয়েড ফোনে ম্যানুয়াল ইন্সটল নিয়ম:
+              অ্যান্ড্রয়েড ফোনে সরাসরি ইন্সটল নিয়ম (কোনো APK খোঁজার প্রয়োজন নেই):
             </h4>
             <ol className="list-decimal list-inside space-y-1.5 text-xs text-slate-600 pl-1 font-medium">
-              <li>অ্যান্ড্রয়েড ফোনে <strong>Google Chrome</strong> ব্রাউজারে লিংকটি খুলুন।</li>
+              <li>আপনার অ্যান্ড্রয়েড ফোনে <strong>Google Chrome</strong> দিয়ে এই লিংকটি ওপেন করুন।</li>
               <li>উপরে ডানদিকের <strong>৩-ডট মেনু (⋮)</strong> বাটনে চাপ দিন।</li>
-              <li>তালিকা থেকে <strong>&quot;Install app&quot;</strong> বা <strong>&quot;Add to Home screen&quot;</strong> সিলেক্ট করুন।</li>
-              <li>সাথে সাথে অ্যাপ আইকন ও স্প্ল্যাশ স্ক্রিনসহ আপনার ফোনে অ্যাপটি ইনস্টল হয়ে যাবে।</li>
+              <li>তালিকা থেকে <strong>&quot;Install app&quot;</strong> বা <strong>&quot;Add to Home screen&quot;</strong> অপশনটি সিলেক্ট করুন।</li>
+              <li>সাথে সাথে <strong>&quot;Yasin Telecom&quot;</strong> নামে অফিসিয়াল অ্যান্ড্রয়েড অ্যাপ হিসেবে আপনার ফোনে ইন্সটল হয়ে যাবে।</li>
             </ol>
           </div>
 
-          {/* Option 3: Convert to standalone .APK file via PWABuilder */}
-          <div className="bg-sky-50/70 p-3.5 rounded-2xl border border-sky-200 space-y-2">
+          {/* Option 3: Explanation regarding PWABuilder & Manifest */}
+          <div className="bg-sky-50/80 p-3.5 rounded-2xl border border-sky-200 space-y-2.5">
             <h4 className="font-bold text-sky-950 text-xs flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-full bg-sky-700 text-white flex items-center justify-center text-[10px]">৩</span>
-              স্ট্যান্ডঅ্যালোন .APK ফাইল তৈরি করতে চান?
+              PWABuilder-এ কেন &quot;Missing Name&quot; দেখায়?
             </h4>
-            <p className="text-[11px] text-sky-800 leading-relaxed">
-              মাইক্রোসফটের অফিশিয়াল <strong>PWABuilder</strong> দিয়ে এই অ্যাপের লিংক দিয়ে মুহূর্তেই সাইন করা আসল <strong>.apk</strong> ফাইল ডাউনলোড করতে পারবেন:
+            <p className="text-[11px] text-sky-900 leading-relaxed">
+              গুগল এআই স্টুডিওর প্রিভিউ লিংকগুলো গুগল অ্যাকাউন্টের সিকিউরিটি দ্বারা সুরক্ষিত থাকে। তাই PWABuilder-এর মতো বাইরের ক্লাউড সার্ভার লিংকটি সরাসরি পড়তে পারে না।
             </p>
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+            <p className="text-[11px] text-sky-900 font-semibold">
+              ✅ সমাধান: আপনার মোবাইলের Chrome ব্রাউজারে লিংকটি খুললেই ১-ক্লিকে আসল অ্যাপ (WebAPK) হিসেবে ইন্সটল হয়ে যাবে!
+            </p>
+            <div className="pt-1 border-t border-sky-200/70 flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={handleCopyLink}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-sky-300 rounded-xl text-sky-900 font-bold text-xs hover:bg-sky-50 shadow-2xs transition"
+                onClick={() => {
+                  const manifestObj = {
+                    name: 'Yasin Telecom',
+                    short_name: 'Yasin Telecom',
+                    description: 'Smart shop manager for Yasin Telecom: inventory, sales, expenses, customer dues, and cash memos.',
+                    start_url: '/',
+                    display: 'standalone',
+                    background_color: '#05192d',
+                    theme_color: '#0a2540',
+                    icons: [
+                      { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+                      { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+                      { src: '/pwa-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+                    ]
+                  };
+                  navigator.clipboard.writeText(JSON.stringify(manifestObj, null, 2));
+                  setCopiedLink(true);
+                  setTimeout(() => setCopiedLink(false), 3000);
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 bg-white border border-sky-300 rounded-xl text-sky-900 font-bold text-xs hover:bg-sky-50 shadow-2xs transition"
               >
-                {copiedLink ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
-                <span>{copiedLink ? 'লিংক কপি হয়েছে!' : 'অ্যাপ লিংক কপি করুন'}</span>
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Manifest JSON কোড কপি করুন</span>
               </button>
               <a
-                href="https://www.pwabuilder.com/"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/manifest.json"
+                download="manifest.json"
                 className="flex items-center gap-1 px-3 py-1.5 bg-sky-600 text-white rounded-xl font-bold text-xs hover:bg-sky-700 shadow-2xs transition"
               >
-                <span>PWABuilder খুলুন</span>
-                <ExternalLink className="w-3.5 h-3.5" />
+                <Download className="w-3.5 h-3.5" />
+                <span>manifest.json ডাউনলোড</span>
               </a>
             </div>
           </div>

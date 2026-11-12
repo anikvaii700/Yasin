@@ -113,24 +113,22 @@ export const AppContent: React.FC = () => {
         return;
       }
 
-      // 7. On HOME screen: Check if pressed twice within 2.2 seconds
-      const now = Date.now();
-      const timeSinceLastPress = now - lastBackPressTimeRef.current;
+      // 7. On HOME screen: ALWAYS OPEN EXIT CONFIRMATION DIALOG IMMEDIATELY!
+      setShowExitConfirmDialog(true);
+    };
 
-      if (timeSinceLastPress < 2200) {
-        // Double press detected! Open confirmation dialog
-        lastBackPressTimeRef.current = 0;
-        setShowExitConfirmDialog(true);
-      } else {
-        // First press: record timestamp and display friendly hint
-        lastBackPressTimeRef.current = now;
-        showMessage('অ্যাপ থেকে বের হতে আবারও ব্যাক বাটন চাপুন');
-      }
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (allowExitRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
     };
 
     window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [showMessage]);
 
@@ -211,6 +209,9 @@ export const AppContent: React.FC = () => {
         break;
       case 16:
         setShowResetDemoModal(true);
+        break;
+      case 17:
+        setShowExitConfirmDialog(true);
         break;
       default:
         setCurrentTab('HOME');
@@ -314,21 +315,21 @@ export const AppContent: React.FC = () => {
         onSelectItem={handleSelectDrawerItem}
       />
 
-      {/* Main Container */}
-      <div className="w-full max-w-2xl mx-auto flex-1 flex flex-col px-2.5 sm:px-4 pt-2.5 sm:pt-4">
-        {/* Top Header Banner (hidden only when printing) */}
-        <div className="mb-3 sm:mb-4 no-print">
-          <HeaderBanner
-            showVisitingCard={currentTab === 'HOME'}
-            onOpenDrawer={() => setIsDrawerOpen(true)}
-            onOpenAdminPanel={() => {
-              setMoreSubScreen('ADMIN');
-              setCurrentTab('MORE');
-            }}
-            onOpenAndroidInstall={() => setShowAndroidInstallModal(true)}
-          />
-        </div>
+      {/* Top Header Bar (Edge-to-Edge like Bottom Navigation Bar, in ALL sections) */}
+      <div className="no-print w-full">
+        <HeaderBanner
+          isHomeScreen={currentTab === 'HOME'}
+          onOpenDrawer={() => setIsDrawerOpen(true)}
+          onOpenAdminPanel={() => {
+            setMoreSubScreen('ADMIN');
+            setCurrentTab('MORE');
+          }}
+          onOpenAndroidInstall={() => setShowAndroidInstallModal(true)}
+        />
+      </div>
 
+      {/* Main Container */}
+      <div className={`w-full max-w-2xl mx-auto flex-1 flex flex-col px-2.5 sm:px-4 ${currentTab === 'HOME' ? 'pt-0' : 'pt-3 sm:pt-4'}`}>
         {/* Tab Views */}
         <main className="flex-1">
           {currentTab === 'HOME' && (

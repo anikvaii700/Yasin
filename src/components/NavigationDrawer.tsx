@@ -15,6 +15,7 @@ import {
   Settings,
   X,
   Store,
+  LogOut,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
@@ -54,6 +55,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
     { id: 11, title: 'দৈনিক হিসাব ক্লোজিং (Daily Closing)', icon: <CalendarCheck className="w-5 h-5 text-slate-700" />, tag: 'drawer_daily_closing' },
     { id: 13, title: 'সেটিংস ও ব্যাকআপ (Settings)', icon: <Settings className="w-5 h-5 text-slate-700" />, tag: 'drawer_settings' },
     { id: 14, title: 'অ্যান্ড্রয়েড অ্যাপ / APK ইন্সটল', icon: <Smartphone className="w-5 h-5 text-emerald-600" />, tag: 'drawer_install_apk' },
+    { id: 17, title: 'অ্যাপ থেকে প্রস্থান (Exit)', icon: <LogOut className="w-5 h-5 text-rose-600" />, tag: 'drawer_exit', isSpecial: true },
   ];
 
   if (!isOpen) return null;
@@ -78,8 +80,12 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-emerald-600 flex items-center justify-center shadow-md">
-              <Store className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-full overflow-hidden shadow-md ring-2 ring-emerald-400/40 bg-white shrink-0">
+              <img
+                src="/assets/aistudio/Yasin_Telecom_Circular_Badge_a7e3e780.png"
+                alt="ইয়াছিন টেলিকম লোগো"
+                className="w-full h-full object-contain block select-none"
+              />
             </div>
             <div>
               <h2 className="font-extrabold text-base leading-snug">{profile.shopName || 'ইয়াছিন টেলিকম'}</h2>

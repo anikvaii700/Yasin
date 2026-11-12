@@ -14,7 +14,7 @@ export default defineConfig({
       manifest: {
         id: '/',
         name: 'Yasin Telecom',
-        short_name: 'YasinTelecom',
+        short_name: 'Yasin Telecom',
         description: 'Smart shop manager for Yasin Telecom: inventory, sales, expenses, customer dues, and cash memos.',
         theme_color: '#0a2540',
         background_color: '#05192d',

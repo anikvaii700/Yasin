@@ -102,10 +102,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       {/* Stage: Dynamic Ball Bouncing Canvas */}
       <div className="relative w-full h-[60vh] flex items-center justify-center">
         {/* Floor Contact Shadow */}
+        {/* Floor Contact Shadow */}
         <div
           className="absolute bottom-[4vh] w-32 h-6 rounded-[100%] bg-black/60 blur-md pointer-events-none splash-floor-shadow"
           style={{
-            animation: 'floorShadowPulse 2.85s ease-in-out forwards',
+            transform: 'scale(0.01)',
+            opacity: 0,
+            animation: 'floorShadowPulse 2.75s ease-in-out forwards',
           }}
         />
 
@@ -113,7 +116,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         <div
           className="relative z-10 w-32 sm:w-36 h-32 sm:h-36 rounded-full cursor-pointer splash-ball-actor"
           style={{
-            animation: 'logoBouncingDropSequence 2.85s cubic-bezier(0.25, 1, 0.5, 1) forwards',
+            transform: 'translate3d(0, -110vh, 0)',
+            willChange: 'transform',
+            animation: 'logoBouncingDropSequence 2.75s cubic-bezier(0.25, 1, 0.5, 1) forwards',
           }}
           onClick={() => {
             // Instant skip on click if desired
@@ -135,7 +140,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           {/* Logo Badge Image - Strict 1:1 Aspect Ratio without cropping */}
           <div className="relative w-full h-full rounded-full overflow-hidden shadow-2xl ring-3 ring-white/20 bg-white">
             <img
-              src="/assets/aistudio/file_000000008d708211963d43c204b0de74_887193df.png"
+              src="/assets/aistudio/Yasin_Telecom_Circular_Badge_a7e3e780.png"
               alt="ইয়াছিন টেলিকম লোগো"
               className="w-full h-full object-contain block select-none pointer-events-none"
               draggable={false}
@@ -173,6 +178,16 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 
       {/* Embedded High-Performance Keyframe Animations: ZERO Distortion */}
       <style>{`
+        /* Initial static off-screen positioning: Prevents ANY flash of logo in center */
+        .splash-ball-actor {
+          transform: translate3d(0, -110vh, 0);
+          will-change: transform;
+        }
+        .splash-floor-shadow {
+          transform: scale(0.01);
+          opacity: 0;
+        }
+
         /*
           Natural Vertical Bouncing Trajectory:
           Maintains strict 1:1 aspect ratio (scale: 1, 1) and rotate: 0deg.
@@ -181,16 +196,16 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         @keyframes logoBouncingDropSequence {
           0% {
             /* Starts high above the viewport */
-            transform: translate3d(0, -90vh, 0) scale(1);
-            opacity: 0.9;
+            transform: translate3d(0, -110vh, 0) scale(1);
+            opacity: 1;
           }
-          22% {
+          19% {
             /* Drop 1: Hits the floor cleanly without squashing */
             transform: translate3d(0, 20vh, 0) scale(1);
           }
-          34% {
+          32% {
             /* Apex of first bounce */
-            transform: translate3d(0, -7vh, 0) scale(1);
+            transform: translate3d(0, -6vh, 0) scale(1);
           }
           45% {
             /* Drop 2: Hits the floor again (ড্রপ খাবে) cleanly */
